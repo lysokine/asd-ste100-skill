@@ -23,28 +23,27 @@ import sys
 # tagging to avoid constant false positives; add spaCy-backed rule if ever needed.
 # No ellipsis rule by owner's choice: technical writing sometimes earns one.
 RULES = [
-    ("semicolon", "advisory",
+    ("semicolon",
      re.compile(r";"),
      "Consider separate sentences if that makes the relationship clearer. Preserve the logical connection."),
-    ("phrasal-verb", "advisory",
+    ("phrasal-verb",
      re.compile(r"\b(spin(?:ning|s)? up|spun up|reach(?:ing|es|ed)? out|div(?:e|es|ing|ed) into|dove into|kick(?:ing|s|ed)? off|circl(?:e|es|ing|ed) back|touch(?:ing|es|ed)? base)\b", re.I),
      "Consider a plainer verb if it preserves the technical meaning. Keep established domain terms."),
-    ("marketing-adjective", "advisory",
+    ("marketing-adjective",
      re.compile(r"\b(seamless(?:ly)?|robust(?:ly)?|cutting-edge|effortless(?:ly)?|blazing[- ]fast|world-class|state-of-the-art|game-chang(?:ing|er))\b", re.I),
      "Possible promotional wording. Preserve the claim; do not invent a measurement or erase a technical meaning."),
-    ("nominalization", "advisory",
+    ("nominalization",
      re.compile(r"\b(perform|performs|performed|conduct|conducts|conducted|carry out|carries out|carried out)\s+(?:a|an|the)\s+\w+(?:tion|sion|ment|ance|ence|ysis)\b", re.I),
      "Consider a direct verb if it describes the same action."),
-    ("passive-voice", "advisory",
+    ("passive-voice",
      re.compile(r"\b(is|are|was|were|been|being)\s+(\w+ed|given|taken|made|done|found|seen|known|shown|written|built|sent|set|run|read|kept|held|left|put)\b(?!\s+(?:to|for|by)\s+\w+ing)", re.I),
      "Consider active voice only if the source identifies the actor and the change improves clarity."),
-    ("present-perfect", "advisory",
+    ("present-perfect",
      # modal + perfect infinitive ("may have failed") is a protected hedge, not present perfect
      re.compile(r"(?<!\bmay )(?<!\bmight )(?<!\bcould )(?<!\bshould )(?<!\bwould )(?<!\bmust )\b(has|have|had)\s+(?:been\s+)?\w+(?:ed|en)\b", re.I),
      "Keep this tense if changing it would alter time, current relevance, or uncertainty."),
 ]
 
-# Term equivalence needs semantic review, not a document-wide synonym list.
 MAX_WORDS = 25  # Review threshold, not a correctness or compliance limit.
 
 CODE_FENCE = re.compile(r"^(```|~~~)")
@@ -287,11 +286,11 @@ def lint(text, filename="<stdin>"):
         for segment, source_column in segments:
             line = INLINE_CODE.sub("", segment)
             words_total += len(line.split())
-            for rule_id, level, pattern, msg in RULES:
+            for rule_id, pattern, msg in RULES:
                 for m in pattern.finditer(line):
                     findings.append({"file": filename, "line": lineno,
                                      "col": source_column + m.start() + 1,
-                                     "rule": rule_id, "level": level,
+                                     "rule": rule_id, "level": "advisory",
                                      "match": m.group(0), "message": msg})
     findings.extend(_long_sentence_findings(lines, table_cells, filename))
     findings.extend(_dangling_conjunction_findings(text, filename))

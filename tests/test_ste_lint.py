@@ -41,10 +41,14 @@ class LinterTests(unittest.TestCase):
 
     def test_style_findings_are_advisory(self):
         result = run_cli("Perform an analysis of the seamless log; spin up the job. "
+                         "The panel is removed. We have received the report. "
                          + "word " * 30 + ".")
         self.assertEqual(result.returncode, 0, result.stderr)
         report = json.loads(result.stdout)
-        self.assertGreater(report["count"], 0)
+        self.assertEqual({f["rule"] for f in report["violations"]},
+                         {"semicolon", "phrasal-verb", "marketing-adjective",
+                          "nominalization", "passive-voice", "present-perfect",
+                          "long-sentence"})
         self.assertEqual(report["hard_count"], 0)
         self.assertTrue(all(f["level"] == "advisory" for f in report["violations"]))
 
