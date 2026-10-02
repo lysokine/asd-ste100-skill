@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Deterministic linter for the structural STE rules in SKILL.md.
+"""Read-only style hints and incomplete-list checks for English Markdown.
 
-Checks only rules verifiable without ASD's dictionary. Deliberately never
-flags hedges or modality (may/might/could): the skill treats confidence as
-content, and a linter that pressures hedges out would rewrite claims.
+Regex heuristics cannot verify meaning, terminology equivalence, or STE
+compliance. Style findings are advisory. Do not rewrite to satisfy a hint
+when doing so would change the source meaning.
 
 Usage:
     ste-lint.py FILE [FILE ...]
@@ -12,8 +12,8 @@ Usage:
     ste-lint.py --disable passive-voice,present-perfect FILE
     ste-lint.py --selftest
 
-Exit 1 when hard ("advisory-free") violations exceed the baseline (default 0).
-Advisory findings (passive voice, compound tenses) never fail the run.
+Exit 1 when incomplete-list findings exceed --baseline (default 0).
+Style findings never fail the run. JSON field names are kept for compatibility.
 """
 import json
 import re
@@ -23,44 +23,29 @@ import sys
 # tagging to avoid constant false positives; add spaCy-backed rule if ever needed.
 # No ellipsis rule by owner's choice: technical writing sometimes earns one.
 RULES = [
-    ("semicolon", "advisory-free",
+    ("semicolon", "advisory",
      re.compile(r";"),
-     "STE bans the semicolon (Rule 8.1). Split into separate sentences."),
-    ("phrasal-verb", "advisory-free",
+     "Consider separate sentences if that makes the relationship clearer. Preserve the logical connection."),
+    ("phrasal-verb", "advisory",
      re.compile(r"\b(spin(?:ning|s)? up|spun up|reach(?:ing|es|ed)? out|div(?:e|es|ing|ed) into|dove into|kick(?:ing|s|ed)? off|circl(?:e|es|ing|ed) back|touch(?:ing|es|ed)? base)\b", re.I),
-     "Soft phrasal verb. Use the single plain verb (start, contact, read, begin)."),
-    ("marketing-adjective", "advisory-free",
+     "Consider a plainer verb if it preserves the technical meaning. Keep established domain terms."),
+    ("marketing-adjective", "advisory",
      re.compile(r"\b(seamless(?:ly)?|robust(?:ly)?|cutting-edge|effortless(?:ly)?|blazing[- ]fast|world-class|state-of-the-art|game-chang(?:ing|er))\b", re.I),
-     "Marketing adjective. Delete, or replace with the measurement that earns the claim."),
-    ("nominalization", "advisory-free",
+     "Possible promotional wording. Preserve the claim; do not invent a measurement or erase a technical meaning."),
+    ("nominalization", "advisory",
      re.compile(r"\b(perform|performs|performed|conduct|conducts|conducted|carry out|carries out|carried out)\s+(?:a|an|the)\s+\w+(?:tion|sion|ment|ance|ence|ysis)\b", re.I),
-     "Action frozen into a noun. Use the verb (analyze, not perform an analysis of)."),
+     "Consider a direct verb if it describes the same action."),
     ("passive-voice", "advisory",
      re.compile(r"\b(is|are|was|were|been|being)\s+(\w+ed|given|taken|made|done|found|seen|known|shown|written|built|sent|set|run|read|kept|held|left|put)\b(?!\s+(?:to|for|by)\s+\w+ing)", re.I),
-     "Possible passive voice. Name the actor and use an active verb, unless the actor is unknown or irrelevant."),
+     "Consider active voice only if the source identifies the actor and the change improves clarity."),
     ("present-perfect", "advisory",
      # modal + perfect infinitive ("may have failed") is a protected hedge, not present perfect
      re.compile(r"(?<!\bmay )(?<!\bmight )(?<!\bcould )(?<!\bshould )(?<!\bwould )(?<!\bmust )\b(has|have|had)\s+(?:been\s+)?\w+(?:ed|en)\b", re.I),
-     "Compound tense. Use simple past/present unless current relevance is the point (then keep and flag)."),
+     "Keep this tense if changing it would alter time, current relevance, or uncertainty."),
 ]
 
-# One word, one meaning: groups of verbs commonly rotated for the same action.
-# Only pairs where the members are genuinely interchangeable — error/fault/failure
-# are distinct concepts and stay out.
-SYNONYM_GROUPS = [
-    ("check", "verify", "confirm", "validate"),
-    ("delete", "remove", "erase"),
-    ("start", "launch", "begin", "initiate"),
-    ("stop", "halt", "terminate"),
-    ("show", "display"),
-    ("use", "utilize", "employ"),
-    ("fix", "repair", "correct"),
-    ("send", "transmit"),
-    ("get", "retrieve", "fetch", "obtain"),
-    ("change", "modify", "alter"),
-]
-
-MAX_WORDS = 25  # descriptions cap; instructions cap is 20 but undetectable without context
+# Term equivalence needs semantic review, not a document-wide synonym list.
+MAX_WORDS = 25  # Review threshold, not a correctness or compliance limit.
 
 CODE_FENCE = re.compile(r"^(```|~~~)")
 INLINE_CODE = re.compile(r"`[^`]*`")
@@ -69,10 +54,6 @@ LIST_ITEM_START = re.compile(
 )
 CONJUNCTION_END = re.compile(r"\b(?:and|or)\s*$", re.I)
 TABLE_SEPARATOR_CELL = re.compile(r"^:?-{3,}:?$")
-
-
-def _word_re(base):
-    return re.compile(r"\b" + base + r"(?:s|es|ed|d|ing)?\b", re.I)
 
 
 def _leading_spaces(line):
@@ -228,14 +209,74 @@ def _dangling_conjunction_findings(text, filename):
     return findings
 
 
+def _long_sentence_findings(lines, table_cells, filename):
+    """Join ordinary soft wraps; keep list items and table cells separate.
+
+    This is not a CommonMark parser. A finding points to the start of its
+    prose block or table cell, not necessarily the start of the sentence.
+    """
+    findings = []
+    pending = []
+    in_fence = False
+    list_indent = None
+
+    def flush():
+        if not pending:
+            return
+        text = " ".join(INLINE_CODE.sub("", part) for part, _, _ in pending)
+        _, lineno, column = pending[0]
+        for sentence in re.split(r"(?<=[.!?])\s+", text):
+            count = len(sentence.split())
+            if count > MAX_WORDS:
+                findings.append({
+                    "file": filename, "line": lineno, "col": column,
+                    "rule": "long-sentence", "level": "advisory",
+                    "match": f"{count} words",
+                    "message": f"Sentence has {count} words (review threshold {MAX_WORDS}). "
+                               "Split only if conditions and logical connections stay intact.",
+                })
+        pending.clear()
+
+    for index, raw in enumerate(lines):
+        stripped = raw.strip()
+        if CODE_FENCE.match(stripped):
+            flush()
+            list_indent = None
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        if index in table_cells:
+            flush()
+            list_indent = None
+            for cell, column in table_cells[index]:
+                pending.append((cell, index + 1, column + 1))
+                flush()
+            continue
+        if not stripped or re.match(r"^ {0,3}#{1,6}(?:\s|$)", raw):
+            flush()
+            list_indent = None
+            continue
+        start = LIST_ITEM_START.match(raw)
+        if start:
+            flush()
+            list_indent = start.start("body")
+            pending.append((start.group("body"), index + 1, list_indent + 1))
+        else:
+            if list_indent is not None and _leading_spaces(raw) < list_indent:
+                flush()
+                list_indent = None
+            pending.append((stripped, index + 1, _leading_spaces(raw) + 1))
+    flush()
+    return findings
+
+
 def lint(text, filename="<stdin>"):
     findings = []
     words_total = 0
     in_fence = False
     lines = text.splitlines()
     table_cells = _markdown_table_cells(lines)
-    # first occurrence of each synonym-group member: (group_idx, base) -> (line, col, match)
-    seen_synonyms = {}
     for lineno, raw_line in enumerate(lines, 1):
         if CODE_FENCE.match(raw_line.strip()):
             in_fence = not in_fence
@@ -252,34 +293,7 @@ def lint(text, filename="<stdin>"):
                                      "col": source_column + m.start() + 1,
                                      "rule": rule_id, "level": level,
                                      "match": m.group(0), "message": msg})
-            for gi, group in enumerate(SYNONYM_GROUPS):
-                for base in group:
-                    if (gi, base) in seen_synonyms:
-                        continue
-                    m = _word_re(base).search(line)
-                    if m:
-                        seen_synonyms[(gi, base)] = (
-                            lineno, source_column + m.start() + 1, m.group(0)
-                        )
-            for sent in re.split(r"(?<=[.!?])\s+", line):
-                n = len(sent.split())
-                if n > MAX_WORDS:
-                    findings.append({"file": filename, "line": lineno,
-                                     "col": source_column + 1,
-                                     "rule": "long-sentence", "level": "advisory-free",
-                                     "match": f"{n} words",
-                                     "message": f"Sentence has {n} words (cap {MAX_WORDS}). Split it."})
-    # synonym rotation: flag each member after the first, at its first occurrence
-    for gi, group in enumerate(SYNONYM_GROUPS):
-        present = [(seen_synonyms[(gi, b)], b) for b in group if (gi, b) in seen_synonyms]
-        if len(present) > 1:
-            present.sort()  # document order
-            first_base = present[0][1]
-            for (lineno, col, match), base in present[1:]:
-                findings.append({"file": filename, "line": lineno, "col": col,
-                                 "rule": "synonym-rotation", "level": "advisory-free",
-                                 "match": match,
-                                 "message": f"'{base}' and '{first_base}' name the same action. Pick one and use it every time."})
+    findings.extend(_long_sentence_findings(lines, table_cells, filename))
     findings.extend(_dangling_conjunction_findings(text, filename))
     findings.sort(key=lambda f: (f["line"], f["col"]))
     return findings, words_total
@@ -293,10 +307,10 @@ def report(findings, words_total, as_json, hard_count, baseline):
                           "words": words_total, "per_100_words": rate}, indent=2))
         return
     for f in findings:
-        print(f"{f['file']}:{f['line']}:{f['col']} {f['rule']}: {f['message']} [{f['match']}]")
-    print(f"\n{len(findings)} violations ({hard_count} hard, baseline {baseline}), "
+        print(f"{f['file']}:{f['line']}:{f['col']} {f['rule']} ({f['level']}): {f['message']} [{f['match']}]")
+    print(f"\n{len(findings)} findings ({hard_count} hard, baseline {baseline}), "
           f"{words_total} words, {rate} per 100 words")
-    print("Hedges/modality (may, might, could) are never flagged: confidence is content.")
+    print("Style hints are advisory. A clean run does not verify meaning or STE compliance.")
 
 
 def selftest():
@@ -402,12 +416,8 @@ def selftest():
     long_sentences = [f for f in findings if f["rule"] == "long-sentence"]
     assert len(long_sentences) == 1, long_sentences
     assert long_sentences[0]["match"] == "26 words", long_sentences
-    # synonym rotation: second member flagged, first named as the keeper
-    findings, _ = lint("Check the config file. Then verify the output. Verify twice.")
-    rot = [f for f in findings if f["rule"] == "synonym-rotation"]
-    assert len(rot) == 1 and "'verify' and 'check'" in rot[0]["message"], rot
-    # single consistent term: no flag
-    findings, _ = lint("Check the config. Check the output.")
+    # Different operations must not be declared synonymous by word matching.
+    findings, _ = lint("Validate the schema. Verify the signature. Confirm receipt.")
     assert not any(f["rule"] == "synonym-rotation" for f in findings)
     # per-file labels
     findings, _ = lint("a; b", filename="x.md")

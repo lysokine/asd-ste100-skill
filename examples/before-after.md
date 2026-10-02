@@ -1,92 +1,57 @@
-# Before / After Examples
+# Before / after: clarity without new meaning
 
-## Part 1 — Official STE Examples
+These are illustrative editorial examples, not model evaluation results or certified STE text. The notes explain what a rewrite must preserve, including cases where clarification is impossible without more evidence.
 
-These illustrate real ASD-STE100 rules, drawn from public secondary sources (see `references/writing-rules.md`). They are paraphrased illustrations of the rule, not quotes from the standard itself.
+## Direct action, known actor
 
-| Rule | Before | After | Why |
-|---|---|---|---|
-| One meaning per word | "Verify the system." / "Check the connections." / "Confirm receipt." | "Make sure the system is correct." (one approved term used consistently) | Three near-synonyms force the reader to guess whether they mean the same action. |
-| One part of speech per word | "Oil the valve." | "Apply oil to the valve." | If "oil" is approved only as a noun, using it as a verb breaks the one-word-one-role guarantee. |
-| Precise verb meaning | "Follow the safety instructions." | "Obey the safety instructions." | "Follow" can mean "come after" or "obey" — STE picks the unambiguous one. |
-| Simple tense only | "We have received the technical reports from HQ." | "We received the technical reports from HQ." | Present perfect adds a second parse ("received, and still relevant now?") that simple past avoids. |
-| Verb, not noun | "Perform an inspection of the filter." | "Inspect the filter." | The noun form hides the action and adds a filler verb that carries no meaning. |
-| No phrasal verbs | "Take off the access panel." | "Remove the access panel." | "Take off" also means "depart" and "deduct" — the two words together do not predict the meaning. |
+**Before:** The agent will perform an analysis of the log and will then provide a report of the errors.
 
-## Part 2 — Applied to Agent Output
+**After:** The agent will analyze the log. It will then report the errors.
 
-These are original examples built for this skill's actual use case: rewriting AI agent output so another agent, a translation layer, or a non-native reader can parse it without ambiguity. They are illustrations, not quotes from any real system.
+The actor, future action, and order are unchanged. No new check or guarantee is added.
 
-Word counts below are whitespace-separated tokens (`text.split()`), punctuation not counted separately. A different tokenizer will produce a different number.
+## A — Ambiguous fallback in a tool description
 
-### Example A — Tool description
+**Before:** This tool will attempt to synchronize state across the various backends that have been configured, and if a conflict is detected it may resolve it automatically depending on the strategy that has been set, or otherwise it will surface the conflict for manual review.
 
-**Before:**
-> This tool will attempt to synchronize state across the various backends that have been configured, and if a conflict is detected it may resolve it automatically depending on the strategy that has been set, or otherwise it will surface the conflict for manual review.
+**After:** The tool tries to synchronize state across the configured backends. If a conflict is detected, it may resolve it automatically depending on the strategy that has been set, or otherwise it will surface the conflict for manual review.
 
-**Violations flagged:**
-- Two instructions in one sentence (sync + resolve/surface).
-- Present perfect in the relative clauses ("have been configured", "has been set").
-- 44 words, far over the 25-word descriptive cap.
+**Needs clarification:** Does "otherwise" mean that automatic resolution is disallowed, or that the conflict remains unresolved for any reason?
 
-Note what is *not* flagged: "will attempt to" and "may resolve". Those are hedges, not violations. The tool is not promised to succeed, and the rewrite must not promise it either.
+The ambiguous clause stays. The rewrite neither invents a "read the strategy" operation nor chooses which outcomes require manual review. A longer sentence is preferable to an invented contract.
 
-**After:**
-> The tool tries to synchronize state across the configured backends. If it finds a conflict, it reads the configured strategy. If the strategy allows automatic resolution, the tool may resolve the conflict without a user. If the tool does not resolve the conflict, it reports the conflict for manual review.
+## B — An error is possible, not confirmed
 
-The last sentence branches on whether the conflict was resolved, not on what the strategy allows. That is what "or otherwise" meant in the original: the fallback covers a permitted resolution that still did not happen.
+**Before:** An error may have occurred while processing your request due to a possible mismatch in the expected data format, which could be caused by an outdated client version.
 
-### Example B — Error message
+**After:** An error may have occurred while processing your request. The cause may be a mismatch in the expected data format. This mismatch could be caused by an outdated client version.
 
-**Before:**
-> An error may have occurred while processing your request due to a possible mismatch in the expected data format, which could be caused by an outdated client version.
+A processing error is not necessarily a failed request. The client is a possible cause, not a proven or frequent cause. There is no new server detail and no added instruction to check the client version.
 
-**Violations flagged:**
-- One sentence carrying three separate claims (an error occurred, a format mismatch, a client version).
-- 28 words, over the descriptive cap.
+## C — A recommendation remains a recommendation
 
-Not flagged: "may have occurred" and "could be caused by". The message is written by a system that does not know what went wrong. Both hedges are accurate reporting of that ignorance.
+**Before:** Once the upstream job has completed and assuming no errors were raised, the downstream agent should proceed to consume the output artifact, though it is worth noting that partial artifacts are sometimes produced under timeout conditions.
 
-**After:**
-> Your request may have failed. The cause may be a data format that does not match what the server expects. An outdated client can cause this mismatch. Check your client version.
+**After:** If the upstream job has completed and no errors were raised, the downstream agent should consume the output artifact. Partial artifacts are sometimes produced under timeout conditions.
 
-**This example is the reason the modality rule exists.** An earlier version of this file rewrote the first sentence as "The request failed", and the third as "an outdated client **is the most common cause**". Both read better. Both are wrong: the first asserts a failure the system only suspects, and the second invents a frequency claim that appears nowhere in the input. A rewrite that supplies a cause, a frequency, or a mechanism has stopped being a rewrite.
+Both prerequisites and `should` remain. The warning keeps `sometimes` and the timeout condition without inventing a causal mechanism. No instruction to wait, reject an artifact, or verify completeness is added. Those may be useful behavioral proposals, but they are not rewrites of the source.
 
-Note also that "may have failed" keeps a compound verb form that the simple-tense rule would otherwise remove. **When the tense rule and the modality rule conflict, modality wins** — dropping the auxiliary here would delete the uncertainty along with the tense.
+## D — Integration claims are not data-residency guarantees
 
-### Example C — Inter-agent instruction
+**Before:** Our caching layer is designed to slot seamlessly into your existing stack with minimal friction and no vendor lock-in; it leverages semantic similarity to dramatically reduce the cache misses that traditionally plague LLM workloads.
 
-**Before:**
-> Once the upstream job has completed and assuming no errors were raised, the downstream agent should proceed to consume the output artifact, though it is worth noting that partial artifacts are sometimes produced under timeout conditions.
+**After:** Our caching layer is designed to integrate seamlessly into your existing stack with minimal friction and no vendor lock-in. It uses semantic similarity to dramatically reduce the cache misses that traditionally affect LLM workloads.
 
-**Violations flagged:**
-- Present perfect ("has completed") and subordinate-clause stacking ("assuming...", "though it is worth noting...").
-- One sentence, three separate facts (completion condition, next action, edge-case warning).
-- 36 words, over the 20-word instruction cap.
+This is a constrained illustration of editing an existing claim, not a reason to apply the skill to marketing copy. The claims about integration and performance remain unverified. "No vendor lock-in" does not establish where data is stored. The rewrite must not add a claim about local storage, exact-match caching, or measured performance. Removing unsupported promises is a separate content-review task.
 
-**After:**
-> Wait for the upstream job to finish with no errors. Then read the output artifact. Warning: a timeout can produce a partial artifact. Check that the artifact is complete before you use it.
+## Different actions keep different names
 
-Two deliberate calls worth stating rather than hiding:
-- "should proceed to consume" became the imperative "read". STE permits this for instructions, where a recommendation addressed to the executing agent is a command. Do not make the same move in descriptive text.
-- The final sentence is **new**. The original warned about partial artifacts without saying what to do about it. Adding the check makes the warning actionable, but it is added content, so it is called out here rather than passed off as a rewrite. If the source's silence was deliberate, drop the sentence.
+**Before and after, unchanged:** Validate the JSON schema. Verify the signature. Confirm deployment with the operator. Remove the disk from the server. Delete the temporary file.
 
-### Example D — README prose (STE-flavored mode)
+Different verbs here express different actions. A document-wide synonym list cannot establish equivalence. Use a consistent term only when it denotes the same concept.
 
-**Before:**
-> Our caching layer is designed to slot seamlessly into your existing stack with minimal friction and no vendor lock-in; it leverages semantic similarity to dramatically reduce the cache misses that traditionally plague LLM workloads.
+## No-op is a valid result
 
-**Violations flagged:**
-- Marketing adjectives and claims without measurement ("seamlessly", "minimal friction", "dramatically").
-- Semicolon joining two separate ideas.
-- Nominalization and soft phrasing ("is designed to slot into", "leverages").
-- 34 words, over the 25-word descriptive cap.
+**Before and after, unchanged:** Retry at most 3 times, and only for HTTP 503. Do not retry HTTP 429.
 
-**After:**
-> A normal cache matches requests by exact text, so a small change in wording causes a cache miss. This cache compares the meaning of a new prompt against the prompts it already holds. It runs alongside your current stack and stores no data outside it.
-
-Flavored mode kept the explanatory rhythm and did not force one fixed term per concept. It still cut the marketing adjectives, the semicolon, and the length.
-
-## How to Read These Examples
-
-Part 1 shows the actual rules this skill is built on. Part 2 shows the transfer: the same discipline — one meaning per word, active voice, simple tense, one instruction per sentence, explicit conditions instead of buried subordinate clauses — makes machine-to-machine and cross-language text safer to parse, not just aircraft manuals.
+Shorter wording is not needed. The limit, condition, and prohibition are already explicit.
