@@ -230,7 +230,7 @@ class PreserveTests(unittest.TestCase):
                          [(">", 0, 1), ("≥", 1, 0)])
         self.assertEqual(sp.compare("Keep SNR >= 5 and n <= 3.", "Keep SNR ≥ 5 and n ≤ 3."), {})
         self.assertEqual(sp.compare("Use 5 or more nodes.", "Use 5 nodes.")["comparison"],
-                         [("or more", 1, 0)])
+                         [("≥", 1, 0)])
         self.assertEqual(sp.compare("Wait ~30 s.", "Wait 30 s.")["hedges"], [("approximately", 1, 0)])
         self.assertEqual(sp.compare("Wait ~30 s, then ≈2 h.", "Wait about 30 s, then roughly 2 h."), {})
         self.assertEqual(sp.compare("Set n=3.", "Set n to 3.")["comparison"], [("=", 1, 0)])
@@ -311,6 +311,44 @@ class PreserveTests(unittest.TestCase):
     def test_fence_closes_only_on_its_own_character(self):
         diff = sp.compare("```\nmake all\n~~~\nmore\n```\n", "```\nmake all\n~~~\nless\n```\n")
         self.assertEqual(sorted(diff), ["code"])
+
+    def test_comparison_words_match_their_symbols(self):
+        for source, rewrite in (("Keep x > 5.", "Keep x greater than 5."),
+                                ("Keep x ≥ 5.", "Keep x at least 5."),
+                                ("Use 5 or more nodes.", "Use at least 5 nodes."),
+                                ("Retry no more than 3 times.", "Retry at most 3 times."),
+                                ("Use fewer than 4 GPUs.", "Use < 4 GPUs.")):
+            with self.subTest(rewrite=rewrite):
+                self.assertEqual(sp.compare(source, rewrite), {})
+        # Strict and inclusive bounds stay distinct.
+        self.assertEqual(sp.compare("Keep x ≥ 5.", "Keep x more than 5.")["comparison"],
+                         [(">", 0, 1), ("≥", 1, 0)])
+        self.assertIn("comparison", sp.compare("Retry at most 3 times.", "Retry at least 3 times."))
+
+    def test_protected_regions_keep_their_contents_together(self):
+        diff = sp.compare('<a href="https://a.org" title="https://b.org">',
+                          '<a href="https://b.org" title="https://a.org">')
+        self.assertEqual(sorted(diff), ["code"])
+        diff = sp.compare("Note <!-- run `make all` --> here.", "Note <!-- run `make test` --> here.")
+        self.assertEqual(diff["code"], [("<!-- run `make all` -->", 1, 0),
+                                        ("<!-- run `make test` -->", 0, 1)])
+        self.assertEqual(sp.compare("Use `<br>` for breaks.", "Use `<br>` for breaks."), {})
+
+    def test_tilde_fence_does_not_shrink_to_a_shorter_closer(self):
+        diff = sp.compare("~~~~\nalpha\n~~~\nbeta\n", "~~~~\nalpha\n~~~\ngamma\n")
+        self.assertEqual(sorted(diff), ["code"])
+
+    def test_unclosed_fence_is_code_to_the_end(self):
+        diff = sp.compare("Intro.\n```\nrm -rf build\nyou must not\n", "Intro.\n```\nrm -rf dist\nyou must not\n")
+        self.assertEqual(sorted(diff), ["code"])
+
+    def test_extension_slash_lists_are_prose(self):
+        for source, rewrite in (("Use pdf/docx/html.", "Use pdf, docx, or html."),
+                                ("Use pdf/docx/html.", "Use pdf / docx / html.")):
+            with self.subTest(rewrite=rewrite):
+                self.assertEqual(sp.compare(source, rewrite), {})
+        self.assertEqual(sp.compare("Read src/lib/util.", "Read src/lib/utils.")["code"],
+                         [("src/lib/util", 1, 0), ("src/lib/utils", 0, 1)])
 
     def test_empty_inputs(self):
         self.assertEqual(sp.compare("", ""), {})

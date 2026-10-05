@@ -33,8 +33,8 @@ class ChallengeTests(unittest.TestCase):
     def test_summary_matches_readme(self):
         # README.md quotes these numbers; update both together.
         totals = challenge.summary(challenge.run())
-        self.assertEqual((totals["corruptions"], len(totals["missed"])), (36, 6))
-        self.assertEqual((totals["paraphrases"], len(totals["false_alarms"])), (20, 3))
+        self.assertEqual((totals["corruptions"], len(totals["missed"])), (37, 6))
+        self.assertEqual((totals["paraphrases"], len(totals["false_alarms"])), (21, 3))
 
     def test_pilot_checker_results_are_current(self):
         pilot = Path(__file__).resolve().parents[1] / "evals/pilot-01"

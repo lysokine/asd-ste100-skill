@@ -37,6 +37,8 @@
   {"id": "c35", "kind": "corruption", "type": "logic", "source": "Use pptx/docx. Send it to the owner or the reviewer.", "rewrite": "Use pptx/docx. Send it to the owner and the reviewer.", "checker": "flag"},
   {"id": "c36", "kind": "corruption", "type": "order", "source": "The cause is probably DNS and possibly the proxy.", "rewrite": "The cause is possibly DNS and probably the proxy.", "checker": "flag"},
 
+  {"id": "c37", "kind": "corruption", "type": "comparison", "source": "Keep wells with SNR \u2265 5.", "rewrite": "Keep wells with SNR more than 5.", "checker": "flag"},
+
   {"id": "p01", "kind": "paraphrase", "type": "nominalization", "source": "The agent will perform an analysis of the log.", "rewrite": "The agent will analyze the log.", "checker": "clean"},
   {"id": "p02", "kind": "paraphrase", "type": "split", "source": "Rebuild the index, and then restart the service.", "rewrite": "Rebuild the index. Then restart the service.", "checker": "clean"},
   {"id": "p03", "kind": "paraphrase", "type": "filler", "source": "It is worth noting that the cache is shared.", "rewrite": "The cache is shared.", "checker": "clean"},
@@ -56,5 +58,6 @@
   {"id": "p17", "kind": "paraphrase", "type": "sentence-order", "source": "Do not retry HTTP 429. Retry at most 3 times for HTTP 503.", "rewrite": "Retry at most 3 times for HTTP 503. Do not retry HTTP 429.", "checker": "clean"},
   {"id": "p18", "kind": "paraphrase", "type": "active-voice", "source": "All requests must be logged by the gateway.", "rewrite": "The gateway must log all requests.", "checker": "clean"},
   {"id": "p19", "kind": "paraphrase", "type": "clause-order", "source": "Do not retry if any job fails.", "rewrite": "If any job fails, do not retry.", "checker": "clean"},
-  {"id": "p20", "kind": "paraphrase", "type": "clause-order", "source": "Wait about 30 s if possible.", "rewrite": "If possible, wait about 30 s.", "checker": "flag"}
+  {"id": "p20", "kind": "paraphrase", "type": "clause-order", "source": "Wait about 30 s if possible.", "rewrite": "If possible, wait about 30 s.", "checker": "flag"},
+  {"id": "p21", "kind": "paraphrase", "type": "symbol-form", "source": "Keep wells with SNR \u2265 5.", "rewrite": "Keep wells with SNR of at least 5.", "checker": "clean"}
 ]

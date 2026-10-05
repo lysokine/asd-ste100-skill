@@ -24,7 +24,7 @@ Run on 2026-10-05 with skill version 0.7.0. One run per arm, five passages. Trea
 
 Per-passage ranks (P1 to P5): original 4, 4, 4, 4, 4; A 3, 2, 3, 3, 3; B 2, 3, 2, 1, 2; C 1, 1, 1, 2, 1.
 
-The single `partial` grade is the same question (P5 q4) for every version, including the original, so it measures the question, not the rewrites.
+Every version, including the original, got `partial` on the same question (P5 q4), for partly different reasons: the scorer cited the missing "one past review" qualifier for all four, and for arm C also the change from "sometimes" to "some".
 
 ## What the checker found
 

@@ -6,9 +6,9 @@ The goal is easier reading without changing facts, uncertainty, requirements, or
 
 ## What changes in 0.7.0
 
-`ste-preserve.py` now compares comparison operators (`>=`, `<`, `~5`, `or more`), the word `or`, and the order of markers within the modality, hedge, quantifier, and negation categories, so `should A, must B` becoming `must A, should B` is reported. Moves across categories are not reported, because active voice and fronted conditions make them legitimately. `ste-lint.py` closes a code fence only on a run of the opening character at least as long as the opening one.
+`ste-preserve.py` now compares comparison operators, with words and symbols as one item (`at least 5` matches `≥ 5`; `more than 5` does not), the word `or`, and the order of markers within the modality, hedge, quantifier, and negation categories, so `should A, must B` becoming `must A, should B` is reported. Moves across categories are not reported, because active voice and fronted conditions make them legitimately. `ste-lint.py` closes a code fence only on a run of the opening character at least as long as the opening one.
 
-`tests/challenge_cases.json` holds 36 deliberate corruptions and 20 legitimate paraphrases with the checker's recorded result. Version 0.7.0 flags 30 of the 36 corruptions; it misses an `only` moved past a modal, swapped actors, an actor hidden by the passive voice, a reversed cause, and added or dropped steps. It reports 3 of the 20 paraphrases: a condition rewritten as a list (`both`), `possibly` rewritten as `may`, and two hedges that swap places when a condition is moved to the front. Run `python3 tests/challenge.py` for the table.
+`tests/challenge_cases.json` holds 37 deliberate corruptions and 21 legitimate paraphrases with the checker's recorded result. Version 0.7.0 flags 31 of the 37 corruptions; it misses an `only` moved past a modal, swapped actors, an actor hidden by the passive voice, a reversed cause, and added or dropped steps. It reports 3 of the 21 paraphrases: a condition rewritten as a list (`both`), `possibly` rewritten as `may`, and two hedges that swap places when a condition is moved to the front. Run `python3 tests/challenge.py` for the table.
 
 A first pilot eval on five real passages is in [evals/pilot-01/RESULTS.md](evals/pilot-01/RESULTS.md). All three approaches kept the answers to the pre-written reader questions. The skill made the smallest edits, but a blind reader ranked its rewrites the hardest of the three to act on in four of five passages. Five passages and one run per arm are not evidence either way.
 
@@ -73,7 +73,7 @@ A zero count is not evidence of truth, preserved meaning, or STE compliance. The
 
 This is a heuristic scanner, not a CommonMark or English parser. Length hints cover ordinary paragraphs, simple list continuations, and individual Markdown table cells; their location is the start of the containing block or cell. Blank lines, ATX headings, list items, tables, and fences separate blocks. Full nested-list semantics, blockquotes, abbreviations, and complex Markdown are not parsed reliably.
 
-The incomplete-list check supports `-`, `*`, `+`, and numeric `.`/`)` markers with zero to three leading spaces and ASCII spaces after the marker. It examines indented continuations. Fenced code is skipped using the inherited three-backtick/three-tilde toggle; inline code is excluded from style checks. These limits are not a license to auto-fix findings.
+The incomplete-list check supports `-`, `*`, `+`, and numeric `.`/`)` markers with zero to three leading spaces and ASCII spaces after the marker. It examines indented continuations. Fenced code is skipped; a fence closes only on a run of its opening character at least as long as the opening run, and an unclosed fence runs to the end of the file. Inline code is excluded from style checks. These limits are not a license to auto-fix findings.
 
 ## Meaning-marker check
 
@@ -84,7 +84,7 @@ python3 scripts/ste-preserve.py --json source.md rewrite.md
 
 Pass the rewritten text alone, without a `Needs clarification:` or `Strict not applied:` note. The check exits 0 when no marker differs, 1 when some differ, and 2 on a usage error or an unreadable file. It reads both files and never edits them. It needs only the Python standard library.
 
-Inflections share one item, so `requires` and `required` match, `three` matches `3`, and `30 seconds` matches `30 s`. Code spans, fenced blocks, URLs, and identifiers such as `--no-cache`, `CUDA_VISIBLE_DEVICES`, or `H100` are compared verbatim apart from trailing whitespace and sentence punctuation, and they are excluded from the word checks. Backticks count as formatting, so a flag with or without backticks is the same item.
+Inflections share one item, so `requires` and `required` match, `three` matches `3`, and `30 seconds` matches `30 s`. Code spans, fenced blocks, URLs, and identifiers such as `--no-cache`, `CUDA_VISIBLE_DEVICES`, or `H100` are compared verbatim apart from trailing whitespace and sentence punctuation, and they are excluded from the word checks. Backticks count as formatting, so a flag with or without backticks is the same item. A slash list of plain words or file extensions (`send/draft`, `pdf/docx/html`) is prose, so rewriting it as `send or draft` is not reported; any other slash token is compared as a path.
 
 Each listed difference is a question for the reviewer, since changing `once` to `if` can be correct. A clean result does not prove that the meaning is preserved, because the check counts markers and cannot read scope or intent.
 

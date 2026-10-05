@@ -69,23 +69,26 @@ WORD_CATEGORIES = [
             "typically", "generally", "frequently", "commonly", "seldom", "normally")
     ]),
     ("negation", [
-        (word, _w(word)) for word in (
-            "not", "no", "never", "none", "nothing", "neither", "nor", "without",
-            "nobody", "nowhere")
-    ]),
+        # "no more than" is a comparison, not a negation.
+        ("not", re.compile(r"\bnot\b(?!\s+(?:more|fewer|less)\s+than\b)")),
+        ("no", re.compile(r"\bno\b(?!\s+(?:more|fewer|less)\s+than\b)")),
+    ] + [(word, _w(word)) for word in (
+        "never", "none", "nothing", "neither", "nor", "without", "nobody", "nowhere")]),
     ("quantifiers", [
-        ("at most", _w(r"at\s+most")), ("at least", _w(r"at\s+least")),
-        ("more than", _w(r"more\s+than")), ("less than", _w(r"less\s+than")),
-        ("fewer than", _w(r"fewer\s+than")), ("up to", _w(r"up\s+to")),
+        ("up to", _w(r"up\s+to")),
         ("exactly", _w("exactly")),
         ("most", re.compile(r"(?<!\bat )\bmost\b")),
     ] + [(word, _w(word)) for word in (
         "all", "every", "each", "any", "some", "only", "both", "either",
         "several", "many", "few")]),
     # Symbols (>=, <, ~5, ...) are added to this category separately; see COMPARISON_SYMBOLS.
+    # Words and symbols share one item: "at least 5" and "≥ 5" match, "> 5" does not.
     ("comparison", [
-        ("or more", _w(r"or\s+more")), ("or fewer", _w(r"or\s+fewer")),
-        ("or less", _w(r"or\s+less")), ("greater than", _w(r"greater\s+than")),
+        ("≤", _w(r"at\s+most|no\s+more\s+than|not\s+more\s+than|or\s+fewer|or\s+less")),
+        ("≥", _w(r"at\s+least|no\s+fewer\s+than|no\s+less\s+than|not\s+less\s+than"
+                r"|or\s+more|or\s+greater")),
+        (">", re.compile(r"(?<!\bno )(?<!\bnot )\b(?:more|greater)\s+than\b")),
+        ("<", re.compile(r"(?<!\bno )(?<!\bnot )\b(?:less|fewer)\s+than\b")),
     ]),
     ("conditions", [
         (word, _w(word)) for word in (
@@ -93,7 +96,7 @@ WORD_CATEGORIES = [
             "once", "except", "provided", "assuming", "otherwise")
     ]),
     # Slash lists (send/draft, pptx / docx) are added separately; see compare().
-    ("alternatives", [("or", _w("or"))]),
+    ("alternatives", [("or", re.compile(r"\bor\b(?!\s+(?:more|fewer|less|greater)\b)"))]),
     ("contrast", [
         ("on the other hand", _w(r"on\s+the\s+other\s+hand")),
         ("in contrast", _w(r"in\s+contrast")),
@@ -152,13 +155,25 @@ NUMBER_RE = re.compile(
     re.I,
 )
 
-# A closing fence repeats the opening fence character at least as many times.
-FENCE_RE = re.compile(
-    r"^ {0,3}(`{3,})[^\n`]*\n(.*?)^ {0,3}\1`*[ \t]*$"
-    r"|^ {0,3}(~{3,})[^\n]*\n(.*?)^ {0,3}\3~*[ \t]*$", re.M | re.S)
-INLINE_CODE_RE = re.compile(r"`([^`\n]+)`")
-URL_RE = re.compile(r"<?\bhttps?://(?:[^\s<>()\"']|\([^\s<>()\"']*\))+>?")
-MARKUP_RE = re.compile(r"<!--.*?-->|</?[A-Za-z][^<>\n]*>", re.S)
+# Protected regions, found in one left-to-right pass so that whichever region starts
+# first is kept whole: a URL inside an HTML tag or backticks inside a comment stay
+# part of that region. A closing fence repeats the opening character at least as
+# many times; an unclosed fence runs to the end of the text.
+PROTECTED_RE = re.compile(
+    r"(?P<fence>^ {0,3}(?P<fb>`{3,})[^\n`]*\n(?P<fbody>.*?)^ {0,3}(?P=fb)`*[ \t]*$)"
+    r"|(?P<tfence>^ {0,3}(?P<ft>~{3,})(?!~)[^\n]*\n(?P<tbody>.*?)^ {0,3}(?P=ft)~*[ \t]*$)"
+    r"|(?P<open>^ {0,3}(?:`{3,}[^\n`]*|~{3,}[^\n]*)(?:\n(?P<obody>.*))?\Z)"
+    r"|(?P<comment><!--.*?-->)"
+    r"|(?P<span>`[^`\n]+`)"
+    r"|(?P<autolink><https?://[^\s<>]+>)"
+    r"|(?P<tag></?[A-Za-z][^<>\n]*>)"
+    r"|(?P<url>\bhttps?://(?:[^\s<>()\"']|\([^\s<>()\"']*\))+)",
+    re.M | re.S)
+# A slash list of these is prose (pdf/docx/html), not a path.
+FILE_EXTENSIONS = {
+    "pdf", "doc", "docx", "ppt", "pptx", "xls", "xlsx", "html", "htm", "md", "csv",
+    "tsv", "json", "yaml", "yml", "txt", "png", "jpg", "jpeg", "svg", "gif", "tif",
+    "tiff", "zip", "tar", "gz"}
 IDENTIFIER_RE = re.compile(r"""(?<![\w/.$~-])(
       --?[A-Za-z][\w-]*                    # command-line flags
     | (?:~|\.{1,2})?/[\w.$~{}/-]+          # absolute or home-relative paths
@@ -187,9 +202,11 @@ def _number_item(digits, unit):
 def _is_identifier(item):
     if item.lower() in IDENTIFIER_STOPLIST or len(item) < 2:
         return False
+    plain = not item.startswith(("/", "~", ".")) and not re.search(r"[.$~{}]", item)
     # A single slash between plain words (read/write, A/B) is prose, not a path.
-    if (item.count("/") == 1 and not item.startswith(("/", "~", "."))
-            and not re.search(r"[.$~{}]", item)):
+    if plain and item.count("/") == 1:
+        return False
+    if plain and all(part.lower() in FILE_EXTENSIONS for part in item.split("/")):
         return False
     return True
 
@@ -210,29 +227,31 @@ def _extract(text):
     found = {name: Counter() for name, _ in WORD_CATEGORIES}
     found.update(numbers=Counter(), code=Counter())
 
-    def take_fence(match):
-        content = match.group(2) if match.group(1) else match.group(4)
-        body = "\n".join(line.rstrip() for line in content.strip("\n").split("\n"))
-        found["code"][f"[block] {body}"] += 1
-        return "\n"
-
-    def take_span(match):
-        # Backticks are formatting: `--no-cache` and --no-cache are one item.
-        content = match.group(1).strip()
+    def add_code_or_number(content):
         number = NUMBER_RE.fullmatch(content)
         if number:
             found["numbers"][_number_item(number.group(1), number.group(2))] += 1
         else:
             found["code"][content] += 1
-        return " "
 
-    def take_url(match):
-        url = match.group(0).strip("<>").rstrip(TRAILING_PUNCT)
-        found["code"][url] += 1
-        return " "
-
-    def take_markup(match):
-        found["code"][match.group(0)] += 1
+    def take_protected(match):
+        if match.group("fence") or match.group("tfence") or match.group("open"):
+            content = match.group("fbody") or match.group("tbody") or match.group("obody") or ""
+            body = "\n".join(line.rstrip() for line in content.strip("\n").split("\n"))
+            found["code"][f"[block] {body}"] += 1
+            return "\n"
+        if match.group("span"):
+            # Backticks are formatting: `--no-cache` and --no-cache are one item.
+            add_code_or_number(match.group("span")[1:-1].strip())
+            return " "
+        if match.group("autolink"):
+            found["code"][match.group("autolink")[1:-1]] += 1
+            return " "
+        if match.group("url"):
+            url = match.group("url").rstrip(TRAILING_PUNCT)
+            found["code"][url] += 1
+            return " " + match.group("url")[len(url):]
+        found["code"][match.group(0)] += 1  # comment or tag, verbatim
         return " "
 
     def take_identifier(match):
@@ -242,10 +261,7 @@ def _extract(text):
         found["code"][item] += 1
         return " " + match.group(0)[len(item):]
 
-    prose = FENCE_RE.sub(take_fence, text)
-    prose = INLINE_CODE_RE.sub(take_span, prose)
-    prose = URL_RE.sub(take_url, prose)
-    prose = MARKUP_RE.sub(take_markup, prose)
+    prose = PROTECTED_RE.sub(take_protected, text)
     prose = IDENTIFIER_RE.sub(take_identifier, prose)
 
     # Normalize prose only after code is removed, so code is compared verbatim.
