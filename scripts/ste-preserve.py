@@ -50,8 +50,10 @@ WORD_CATEGORIES = [
         ("appear", _w(r"appear(?:s|ed|ing)?")), ("seem", _w(r"seem(?:s|ed|ing)?")),
         ("apparently", _w("apparently")), ("potential", _w(r"potential(?:ly)?")),
         ("presumably", _w("presumably")), ("suspect", _w(r"suspect(?:s|ed)?")),
-        ("approximately", _w("approximately")), ("roughly", _w("roughly")),
-        ("about (number)", re.compile(r"\b(?:about|around)(?=\s+[-+]?\d)")),
+        # ~85 s, about 85 s, and approximately 85 s are one hedge.
+        ("approximately", _w(r"approximately|roughly")),
+        ("approximately", re.compile(r"\b(?:about|around)(?=\s+[-+]?\.?\d)")),
+        ("approximately", re.compile(r"≈|(?<![\w~])~(?=\s*[-+]?\.?\d)")),
         ("unclear", _w("unclear")), ("uncertain", _w(r"uncertain(?:ty|ties)?")),
         ("unknown", _w("unknown")), ("unsure", _w("unsure")),
         ("whether", _w("whether")), ("think", _w(r"thinks?")),
@@ -90,7 +92,11 @@ WORD_CATEGORIES = [
             "if", "unless", "when", "whenever", "until", "before", "after",
             "once", "except", "provided", "assuming", "otherwise")
     ]),
-    ("alternatives", [("or", _w("or"))]),
+    # A slash list (send/draft, pptx / docx) can mean "or" or "and"; see compare().
+    ("alternatives", [
+        ("or", _w("or")),
+        ("/", re.compile(r"\b[a-z][\w-]*(?:[ \t]*/[ \t]*[a-z][\w-]*)+\b")),
+    ]),
     ("contrast", [
         ("on the other hand", _w(r"on\s+the\s+other\s+hand")),
         ("in contrast", _w(r"in\s+contrast")),
@@ -110,7 +116,6 @@ COMPARISON_SYMBOLS = [
     ("≥", re.compile(r"≥|⩾|>=")),
     ("≤", re.compile(r"≤|⩽|<=")),
     ("≠", re.compile(r"≠|!=")),
-    ("≈", re.compile(r"≈|(?<![\w~])~(?=\s*[-+]?\.?\d)")),
     (">", re.compile(r"(?<![-=>])>(?![=>])")),
     ("<", re.compile(r"(?<!<)<(?![=<-])")),
     ("=", re.compile(r"(?<![=!<>])=(?![=>])")),
@@ -282,6 +287,13 @@ def compare(source, rewrite):
     (before, seq_before), (after, seq_after) = _extract(source), _extract(rewrite)
     differences = {}
     for name in before:
+        if name == "alternatives":
+            # Each slash list may become one "or" or none, so compare ranges.
+            low_b, low_a = before[name]["or"], after[name]["or"]
+            high_b, high_a = low_b + before[name]["/"], low_a + after[name]["/"]
+            if high_b < low_a or high_a < low_b:
+                differences[name] = [("or", low_b, low_a)]
+            continue
         rows = []
         for item in sorted(set(before[name]) | set(after[name])):
             if before[name][item] != after[name][item]:

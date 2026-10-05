@@ -152,7 +152,7 @@ class PreserveTests(unittest.TestCase):
             ("There is a possibility of data loss.", "There is data loss.",
              "hedges", [("possible", 1, 0)]),
             ("Wait about 30 s on around 5 nodes.", "Wait 30 s on 5 nodes.",
-             "hedges", [("about (number)", 2, 0)]),
+             "hedges", [("approximately", 2, 0)]),
             ("Retries tend to succeed.", "Retries succeed.", "hedges", [("tend to", 1, 0)]),
         ]
         for source, rewrite, category, expected in cases:
@@ -219,7 +219,7 @@ class PreserveTests(unittest.TestCase):
     def test_word_numbers_bind_units(self):
         self.assertEqual(sp.compare("Wait three seconds.", "Wait 3 seconds."), {})
         self.assertEqual(sp.compare("Wait about three seconds.", "Wait three seconds.")["hedges"],
-                         [("about (number)", 1, 0)])
+                         [("approximately", 1, 0)])
 
     def test_line_wrap_does_not_change_phrases(self):
         self.assertEqual(sp.compare("Wait at\nmost 3 seconds.", "Wait at most 3 seconds."), {})
@@ -231,7 +231,8 @@ class PreserveTests(unittest.TestCase):
         self.assertEqual(sp.compare("Keep SNR >= 5 and n <= 3.", "Keep SNR ≥ 5 and n ≤ 3."), {})
         self.assertEqual(sp.compare("Use 5 or more nodes.", "Use 5 nodes.")["comparison"],
                          [("or more", 1, 0)])
-        self.assertEqual(sp.compare("Wait ~30 s.", "Wait 30 s.")["comparison"], [("≈", 1, 0)])
+        self.assertEqual(sp.compare("Wait ~30 s.", "Wait 30 s.")["hedges"], [("approximately", 1, 0)])
+        self.assertEqual(sp.compare("Wait ~30 s, then ≈2 h.", "Wait about 30 s, then roughly 2 h."), {})
         self.assertEqual(sp.compare("Set n=3.", "Set n to 3.")["comparison"], [("=", 1, 0)])
 
     def test_arrows_and_blockquotes_are_not_comparisons(self):
@@ -260,6 +261,16 @@ class PreserveTests(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertEqual(json.loads(result.stdout)["differences"]["order"],
                          [{"item": "sequence", "source": "should, must", "rewrite": "must, should"}])
+
+    def test_slash_lists_may_become_or_or_and(self):
+        for source, rewrite in (("Send/draft it as a DM.", "Send or draft it as a DM."),
+                                ("It needs read/write access.", "It needs read and write access."),
+                                ("For a pptx / docx / pdf file.", "For a pptx, docx, or pdf file."),
+                                ("No NVLink/InfiniBand, so never multi-GPU or multi-node.",
+                                 "No NVLink or InfiniBand, so never multi-GPU or multi-node.")):
+            with self.subTest(rewrite=rewrite):
+                self.assertEqual(sp.compare(source, rewrite), {})
+        self.assertEqual(sp.compare("Pick A or B.", "Pick A and B.")["alternatives"], [("or", 1, 0)])
 
     def test_alternatives_are_compared(self):
         self.assertEqual(sp.compare("Alert if CPU is high and memory is low.",
