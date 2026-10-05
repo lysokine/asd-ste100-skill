@@ -46,7 +46,9 @@ git clone https://github.com/lysokine/asd-ste100-skill.git .agents/skills/asd-st
 
 For an unmerged PR, check out its head branch in that clone before trying it. Cloning the default branch does not include pending changes. Do not overwrite an existing installation. Check that the session loads this fork's `SKILL.md`, not another installed skill with the same name.
 
-Use `/asd-ste100` in Claude Code or select the skill explicitly in Codex, then supply the text and ask to show the diff during the trial. Keep the source visible for comparison. The default output is just the rewritten text. A separate `Needs clarification:` note flags unresolved meaning, and a `Strict not applied:` note marks a passage where strict mode was declined.
+Use `/asd-ste100` in Claude Code or `$asd-ste100` in Codex, then supply the text and ask to show the diff during the trial. Keep the source visible for comparison. The default output is just the rewritten text. A separate `Needs clarification:` note flags unresolved meaning, and a `Strict not applied:` note marks a passage where strict mode was declined.
+
+To share one checkout between both tools, clone it for Claude Code and symlink it for Codex: `ln -s ~/.claude/skills/asd-ste100 ~/.codex/skills/asd-ste100`. Codex follows the link. The skill is explicit-only in both: `disable-model-invocation: true` in `SKILL.md` for Claude Code, and `policy.allow_implicit_invocation: false` in `agents/openai.yaml` for Codex, so it never enters either tool's automatic skill list.
 
 Local skill locations are documented by [Claude Code](https://code.claude.com/docs/en/skills) and [Codex](https://developers.openai.com/codex/skills/). Native loading and model behavior must be checked in your own session; the Python tests below do not exercise either runtime.
 

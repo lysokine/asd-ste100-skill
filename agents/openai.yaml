@@ -1,0 +1,5 @@
+interface:
+  display_name: "ASD-STE100 clarity editor"
+  short_description: "Rewrite named technical English for clarity without changing its meaning"
+policy:
+  allow_implicit_invocation: false
