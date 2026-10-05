@@ -2,6 +2,7 @@
 name: asd-ste100
 description: "Use when the user asks to clarify or rewrite a specific English technical text: a tool description, error message, prompt, inter-agent instruction, or documentation passage. Not for routinely restyling answers, changing code, or editing creative copy."
 version: 0.5.0
+disable-model-invocation: true
 ---
 
 # Meaning-preserving technical English
