@@ -4,6 +4,12 @@ A meaning-preserving editor for a selected passage of technical English. This re
 
 The goal is easier reading without changing facts, uncertainty, requirements, or behavior. Use it for an explicit editing task, not as a global style mandate. The core instruction is in [SKILL.md](SKILL.md).
 
+## What changes in 0.7.0
+
+`ste-preserve.py` now compares comparison operators (`>=`, `<`, `~5`, `or more`), the word `or`, and the order of modality, hedge, quantifier, and negation markers, so `should A, must B` becoming `must A, should B` is reported. `ste-lint.py` closes a code fence only on a run of the opening character at least as long as the opening one.
+
+`tests/challenge_cases.json` holds 34 deliberate corruptions and 17 legitimate paraphrases with the checker's recorded result. Version 0.7.0 flags 29 of the 34 corruptions; it misses swapped actors, an actor hidden by the passive voice, a reversed cause, and added or dropped steps. It reports 3 of the 17 paraphrases: a condition rewritten as a list (`both`), `possibly` rewritten as `may`, and two independent sentences swapped. Run `python3 tests/challenge.py` for the table.
+
 ## What changes in 0.6.0
 
 Version 0.6.0 adds `scripts/ste-preserve.py`, a read-only check that compares a source with its rewrite. It lists modality, hedges, frequency words, negation, quantifiers, condition and contrast markers, numbers with units, code, and identifiers whose counts differ. It catches the most harmful rewrite failure, a hedge or a `should` that silently becomes a certainty or a `must`, when the changed word is on its lists: for example `may`, `should`, `will`, `possibly`, `unclear`, `we think`, or `about 30`. A hedge phrased some other way can still slip through.
@@ -83,6 +89,7 @@ Each listed difference is a question for the reviewer, since changing `once` to 
 ```bash
 python3 scripts/ste-lint.py --selftest
 python3 scripts/ste-preserve.py --selftest
+python3 tests/challenge.py
 python3 -m unittest discover -s tests -v
 ```
 

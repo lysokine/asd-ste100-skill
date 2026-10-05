@@ -25,11 +25,11 @@
   {"id": "c24", "kind": "corruption", "type": "code", "source": "Set OMP_NUM_THREADS to the slot count.", "rewrite": "Set MKL_NUM_THREADS to the slot count.", "checker": "flag"},
   {"id": "c25", "kind": "corruption", "type": "code", "source": "Run `make test` first.", "rewrite": "Run `make all` first.", "checker": "flag"},
   {"id": "c26", "kind": "corruption", "type": "code", "source": "Submit the job with -q short.", "rewrite": "Submit the job with -Q short.", "checker": "flag"},
-  {"id": "c27", "kind": "corruption", "type": "order", "source": "Clients should retry, and servers must log the error.", "rewrite": "Clients must retry, and servers should log the error.", "checker": "clean"},
-  {"id": "c28", "kind": "corruption", "type": "order", "source": "Only admins can delete projects; users must not edit them.", "rewrite": "Admins can delete projects; only users must not edit them.", "checker": "clean"},
+  {"id": "c27", "kind": "corruption", "type": "order", "source": "Clients should retry, and servers must log the error.", "rewrite": "Clients must retry, and servers should log the error.", "checker": "flag"},
+  {"id": "c28", "kind": "corruption", "type": "order", "source": "Only admins can delete projects; users must not edit them.", "rewrite": "Admins can delete projects; only users must not edit them.", "checker": "flag"},
   {"id": "c29", "kind": "corruption", "type": "actor", "source": "The client retries the request, and the server logs it.", "rewrite": "The server retries the request, and the client logs it.", "checker": "clean"},
   {"id": "c30", "kind": "corruption", "type": "actor", "source": "The operator must approve the change.", "rewrite": "The change must be approved.", "checker": "clean"},
-  {"id": "c31", "kind": "corruption", "type": "logic", "source": "Alert if CPU is high and memory is low.", "rewrite": "Alert if CPU is high or memory is low.", "checker": "clean"},
+  {"id": "c31", "kind": "corruption", "type": "logic", "source": "Alert if CPU is high and memory is low.", "rewrite": "Alert if CPU is high or memory is low.", "checker": "flag"},
   {"id": "c32", "kind": "corruption", "type": "logic", "source": "The retry storm caused the outage.", "rewrite": "The outage caused the retry storm.", "checker": "clean"},
   {"id": "c33", "kind": "corruption", "type": "step", "source": "Edit config.toml.", "rewrite": "Edit config.toml and restart the service.", "checker": "clean"},
   {"id": "c34", "kind": "corruption", "type": "step", "source": "Stop the job, then archive the logs.", "rewrite": "Archive the logs.", "checker": "clean"},
@@ -50,5 +50,5 @@
   {"id": "p14", "kind": "paraphrase", "type": "hedge-form", "source": "This is possibly a race condition.", "rewrite": "This may be a race condition.", "checker": "flag"},
   {"id": "p15", "kind": "paraphrase", "type": "split", "source": "You should probably run the validation step before merging, and the job must be submitted with bsub -q short, which has been the convention since the cluster migration.", "rewrite": "You should probably run the validation step before merging. Submit the job with bsub -q short. This must be done because it has been the convention since the cluster migration.", "checker": "clean"},
   {"id": "p16", "kind": "paraphrase", "type": "clause-order", "source": "Before you merge, run the tests.", "rewrite": "Run the tests before you merge.", "checker": "clean"},
-  {"id": "p17", "kind": "paraphrase", "type": "sentence-order", "source": "Do not retry HTTP 429. Retry at most 3 times for HTTP 503.", "rewrite": "Retry at most 3 times for HTTP 503. Do not retry HTTP 429.", "checker": "clean"}
+  {"id": "p17", "kind": "paraphrase", "type": "sentence-order", "source": "Do not retry HTTP 429. Retry at most 3 times for HTTP 503.", "rewrite": "Retry at most 3 times for HTTP 503. Do not retry HTTP 429.", "checker": "flag"}
 ]

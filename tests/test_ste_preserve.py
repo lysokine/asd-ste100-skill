@@ -237,6 +237,35 @@ class PreserveTests(unittest.TestCase):
     def test_arrows_and_blockquotes_are_not_comparisons(self):
         self.assertEqual(sp.compare("> Note: A -> B => C == D <- E.", "Note: A, B, C, D, E."), {})
 
+    def test_swapped_markers_are_reported_as_order(self):
+        diff = sp.compare("Clients should retry, and servers must log the error.",
+                          "Clients must retry, and servers should log the error.")
+        self.assertEqual(diff, {"order": [("sequence", "should, must", "must, should")]})
+        diff = sp.compare("Only admins can delete projects; users must not edit them.",
+                          "Admins can delete projects; only users must not edit them.")
+        self.assertEqual(diff["order"], [("sequence", "only, can", "can, only")])
+
+    def test_order_is_silent_when_counts_already_differ(self):
+        diff = sp.compare("You should wait, and you must log it.", "You must wait.")
+        self.assertNotIn("order", diff)
+        self.assertEqual(sp.compare("You should wait, and you must log it.",
+                                    "You should wait. You must log it."), {})
+
+    def test_conditions_and_contrast_do_not_enter_order(self):
+        self.assertEqual(sp.compare("If the job fails, retry, but log it.",
+                                    "Retry if the job fails, but log it."), {})
+
+    def test_order_row_in_json(self):
+        result, _ = run_cli("A should run; B must stop.", "A must run; B should stop.", "--json")
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(json.loads(result.stdout)["differences"]["order"],
+                         [{"item": "sequence", "source": "should, must", "rewrite": "must, should"}])
+
+    def test_alternatives_are_compared(self):
+        self.assertEqual(sp.compare("Alert if CPU is high and memory is low.",
+                                    "Alert if CPU is high or memory is low.")["alternatives"],
+                         [("or", 0, 1)])
+
     def test_unreadable_files_exit_2(self):
         result = subprocess.run([sys.executable, str(SCRIPT), "--json", "nope1", "nope2"],
                                 text=True, capture_output=True, check=False)

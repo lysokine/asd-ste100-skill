@@ -90,6 +90,7 @@ WORD_CATEGORIES = [
             "if", "unless", "when", "whenever", "until", "before", "after",
             "once", "except", "provided", "assuming", "otherwise")
     ]),
+    ("alternatives", [("or", _w("or"))]),
     ("contrast", [
         ("on the other hand", _w(r"on\s+the\s+other\s+hand")),
         ("in contrast", _w(r"in\s+contrast")),
@@ -99,6 +100,10 @@ WORD_CATEGORIES = [
         "but", "however", "although", "though", "whereas", "yet", "despite",
         "instead", "conversely", "nevertheless", "nonetheless")]),
 ]
+
+# Condition and contrast markers move legitimately when a clause is fronted, so
+# only these categories are checked for order.
+ORDER_CATEGORIES = ("modality", "hedges", "quantifiers", "negation")
 
 # Arrows (->, =>, <-) and doubled operators (==, <<) are not comparisons.
 COMPARISON_SYMBOLS = [
@@ -183,6 +188,16 @@ def _is_identifier(item):
 
 def extract(text):
     """Return {category: Counter} of the meaning markers in one text."""
+    return _extract(text)[0]
+
+
+def _extract(text):
+    """Return ({category: Counter}, ordered markers) for one text.
+
+    The ordered list holds the ORDER_CATEGORIES markers in document order, so a
+    rewrite that swaps `should` and `must` between clauses can be detected even
+    though the counts match.
+    """
     text = text.replace("\r\n", "\n")
     found = {name: Counter() for name, _ in WORD_CATEGORIES}
     found.update(numbers=Counter(), code=Counter())
@@ -232,17 +247,39 @@ def extract(text):
     lowered = re.sub(r"\s+", " ", prose.lower())
     for pattern, replacement in CONTRACTIONS:
         lowered = pattern.sub(replacement, lowered)
+    ordered = []
     for name, terms in WORD_CATEGORIES:
         for item, pattern in terms:
-            count = len(pattern.findall(lowered))
-            if count:
-                found[name][item] += count
-    return found
+            starts = [match.start() for match in pattern.finditer(lowered)]
+            if starts:
+                found[name][item] += len(starts)
+                if name in ORDER_CATEGORIES:
+                    ordered.extend((start, item) for start in starts)
+    return found, [item for _, item in sorted(ordered)]
+
+
+def _order_difference(before, after):
+    """Return the differing middle of two marker sequences, or None if equal."""
+    if before == after:
+        return None
+    head = 0
+    while head < min(len(before), len(after)) and before[head] == after[head]:
+        head += 1
+    tail = 0
+    while (tail < min(len(before), len(after)) - head
+           and before[-1 - tail] == after[-1 - tail]):
+        tail += 1
+    return before[head:len(before) - tail], after[head:len(after) - tail]
 
 
 def compare(source, rewrite):
-    """Return {category: [(item, source_count, rewrite_count)]} for differences."""
-    before, after = extract(source), extract(rewrite)
+    """Return {category: [(item, source, rewrite)]} for differences.
+
+    Count rows give the item and its two counts. An "order" row appears only
+    when the ORDER_CATEGORIES markers have identical counts but a different
+    sequence; it gives the two differing sub-sequences as strings.
+    """
+    (before, seq_before), (after, seq_after) = _extract(source), _extract(rewrite)
     differences = {}
     for name in before:
         rows = []
@@ -251,6 +288,10 @@ def compare(source, rewrite):
                 rows.append((item, before[name][item], after[name][item]))
         if rows:
             differences[name] = rows
+    if Counter(seq_before) == Counter(seq_after):
+        moved = _order_difference(seq_before, seq_after)
+        if moved:
+            differences["order"] = [("sequence", ", ".join(moved[0]), ", ".join(moved[1]))]
     return differences
 
 
@@ -268,7 +309,10 @@ def report(differences, as_json):
         print("No marker differences found. That does not prove the meaning is preserved.")
         return
     for name, rows in differences.items():
-        print(f"{name}: " + "; ".join(f"{item} {src} -> {rw}" for item, src, rw in rows))
+        if name == "order":
+            print("order: " + "; ".join(f"{src} -> {rw}" for _, src, rw in rows))
+        else:
+            print(f"{name}: " + "; ".join(f"{item} {src} -> {rw}" for item, src, rw in rows))
     print("Review each listed difference; some are legitimate rewording.")
 
 

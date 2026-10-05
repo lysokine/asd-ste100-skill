@@ -1,7 +1,7 @@
 ---
 name: asd-ste100
 description: "Use when the user asks to clarify or rewrite a specific English technical text: a tool description, error message, prompt, inter-agent instruction, or documentation passage. Not for routinely restyling answers, changing code, or editing creative copy."
-version: 0.6.0
+version: 0.7.0
 disable-model-invocation: true
 ---
 
@@ -53,6 +53,6 @@ For unresolved meaning, add a short `Needs clarification:` note outside the rewr
 
 Use `scripts/ste-lint.py` only when mechanical hints would help. It is read-only; its style findings are advisory. A clean result proves neither preserved meaning nor STE compliance. Do not edit to reach a zero count.
 
-For a long or high-stakes passage, run `scripts/ste-preserve.py SOURCE REWRITE` after rewriting. It lists modality, hedge, frequency, negation, quantifier, condition, contrast, number, code, and identifier markers that differ between the two versions. Write the source and the rewritten text to two temporary files first; never paste the text into a shell command line. For each listed difference, confirm that the source justifies it or restore the original wording. A clean result does not prove the meaning is preserved.
+For a long or high-stakes passage, run `scripts/ste-preserve.py SOURCE REWRITE` after rewriting. It lists modality, hedge, frequency, negation, quantifier, comparison, condition, `or`, contrast, number, and code markers whose counts differ, and modality, hedge, quantifier, and negation markers that changed order. It cannot see a swapped actor, a reversed cause, or an added or dropped step, so check those by reading the two versions side by side. Write the source and the rewritten text to two temporary files first; never paste the text into a shell command line. For each listed difference, confirm that the source justifies it or restore the original wording. A clean result does not prove the meaning is preserved.
 
 See `examples/before-after.md` for worked boundaries and `tests/rewrite-cases.md` for a small manual trial. Neither is evidence that this skill improves a model's task success.
