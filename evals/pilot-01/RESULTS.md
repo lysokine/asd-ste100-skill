@@ -4,7 +4,7 @@ Run on 2026-10-05 with skill version 0.7.0. One run per arm, five passages. Trea
 
 ## Method
 
-1. Five passages adapted from the repository owner's own agent rules and cluster notes (`passages.json`). Names, paths, IDs, and project details were removed; the wording was otherwise kept, including its hedges and its fragments.
+1. Five passages adapted from the repository owner's own agent rules and cluster notes (`passages.json`). Names, paths, IDs, and project details were removed; the wording was otherwise kept, including its hedges and its fragments. Before publication, the cluster capacity figures in P1 (GPU counts and queue length) were replaced with illustrative values in every file; the runs used the real figures. The replacement is identical in the source and in all three rewrites, so the checker and scoring results do not change.
 2. 23 reader questions with expected answers (`questions.json`), written from the source and committed before any rewrite existed.
 3. Three arms, each run once by a fresh Claude Opus 5.5 agent that saw only its own instruction (`outputs/arm_*.json`):
    - A: read `SKILL.md` and apply it in its default mode.
