@@ -98,10 +98,10 @@ class PreserveTests(unittest.TestCase):
         self.assertEqual(sorted(diff), ["code"])
 
     def test_identifiers_outside_backticks_are_compared(self):
-        source = ("Submit with bsub -P das and keep CUDA_VISIBLE_DEVICES unset; "
+        source = ("Submit with bsub -P lab and keep CUDA_VISIBLE_DEVICES unset; "
                   "logs go to /scratch/$USER/logs and config.toml.")
         self.assertEqual(sp.compare(source, source), {})
-        diff = sp.compare(source, source.replace("-P das", "-p das")
+        diff = sp.compare(source, source.replace("-P lab", "-p lab")
                           .replace("CUDA_VISIBLE_DEVICES", "the GPU variable"))
         self.assertEqual(diff["code"], [("-P", 1, 0), ("-p", 0, 1),
                                         ("CUDA_VISIBLE_DEVICES", 1, 0)])
@@ -129,13 +129,13 @@ class PreserveTests(unittest.TestCase):
 
     def test_user_guide_passage(self):
         source = ("You should probably run the validation step before merging, and the job "
-                  "must be submitted with bsub -P das, which has been the convention since "
+                  "must be submitted with bsub -P lab, which has been the convention since "
                   "the cluster migration.")
         kept = ("You should probably run the validation step before merging. Submit the job "
-                "with bsub -P das. This must be done because it has been the convention "
+                "with bsub -P lab. This must be done because it has been the convention "
                 "since the cluster migration.")
         self.assertEqual(sp.compare(source, kept), {})
-        hardened = ("Run the validation step before merging. Submit the job with bsub -P das.")
+        hardened = ("Run the validation step before merging. Submit the job with bsub -P lab.")
         diff = sp.compare(source, hardened)
         self.assertEqual(diff["modality"], [("must", 1, 0), ("should", 1, 0)])
         self.assertEqual(diff["hedges"], [("probable", 1, 0)])
@@ -241,10 +241,25 @@ class PreserveTests(unittest.TestCase):
     def test_swapped_markers_are_reported_as_order(self):
         diff = sp.compare("Clients should retry, and servers must log the error.",
                           "Clients must retry, and servers should log the error.")
-        self.assertEqual(diff, {"order": [("sequence", "should, must", "must, should")]})
-        diff = sp.compare("Only admins can delete projects; users must not edit them.",
-                          "Admins can delete projects; only users must not edit them.")
-        self.assertEqual(diff["order"], [("sequence", "only, can", "can, only")])
+        self.assertEqual(diff, {"order": [("modality", "should, must", "must, should")]})
+        diff = sp.compare("Only admins may read logs and only operators may delete them.",
+                          "Admins may read logs and only operators may delete them, only.")
+        self.assertNotIn("order", diff)
+        self.assertEqual(sp.compare("Retry if possible, otherwise likely fail.",
+                                    "Retry if possible, otherwise likely fail.")
+                         .get("order"), None)
+
+    def test_order_ignores_moves_across_categories(self):
+        # Active voice and fronted conditions are edits the skill recommends.
+        for source, rewrite in (("All requests must be logged.", "You must log all requests."),
+                                ("Do not retry if any job fails.", "If any job fails, do not retry.")):
+            with self.subTest(rewrite=rewrite):
+                self.assertEqual(sp.compare(source, rewrite), {})
+        # Known cost: a cross-category swap such as a moved "only" is not seen.
+        self.assertEqual(sp.compare("Only admins can delete projects; users must not edit them.",
+                                    "Admins can delete projects; only users must not edit them."), {})
+        # Known false alarm: two hedges swap places when a condition is fronted.
+        self.assertIn("order", sp.compare("Wait about 30 s if possible.", "If possible, wait about 30 s."))
 
     def test_order_is_silent_when_counts_already_differ(self):
         diff = sp.compare("You should wait, and you must log it.", "You must wait.")
@@ -260,7 +275,7 @@ class PreserveTests(unittest.TestCase):
         result, _ = run_cli("A should run; B must stop.", "A must run; B should stop.", "--json")
         self.assertEqual(result.returncode, 1)
         self.assertEqual(json.loads(result.stdout)["differences"]["order"],
-                         [{"item": "sequence", "source": "should, must", "rewrite": "must, should"}])
+                         [{"item": "modality", "source": "should, must", "rewrite": "must, should"}])
 
     def test_slash_lists_may_become_or_or_and(self):
         for source, rewrite in (("Send/draft it as a DM.", "Send or draft it as a DM."),
@@ -271,6 +286,40 @@ class PreserveTests(unittest.TestCase):
             with self.subTest(rewrite=rewrite):
                 self.assertEqual(sp.compare(source, rewrite), {})
         self.assertEqual(sp.compare("Pick A or B.", "Pick A and B.")["alternatives"], [("or", 1, 0)])
+
+    def test_slash_list_kept_in_both_versions_gives_no_slack(self):
+        for source, rewrite in (("Use pptx/docx. Retry on 503 or 429.", "Use pptx/docx. Retry on 503 and 429."),
+                                ('Send/draft it. Say "send to X" or "post in Y".',
+                                 'Send/draft it. Say "send to X" and "post in Y".')):
+            with self.subTest(rewrite=rewrite):
+                self.assertIn("alternatives", sp.compare(source, rewrite))
+        # Known gap: a slash list new in the rewrite may stand in for a dropped "or".
+        self.assertEqual(sp.compare("Pick A or B.", "Pick A and B for read/write."), {})
+
+    def test_markup_is_code_not_comparison(self):
+        for source, rewrite in (("Line one<br>Line two.", "Line one<br>Line two."),
+                                ("See <https://x.org/a>.", "See [docs](https://x.org/a)."),
+                                ("- > A > B", "- > A > B")):
+            with self.subTest(source=source):
+                self.assertNotIn("comparison", sp.compare(source, rewrite))
+        self.assertEqual(sp.compare('Say "send to <person>".', 'Say "send to them".')["code"],
+                         [("<person>", 1, 0)])
+        self.assertEqual(sp.compare("Note <!-- todo --> here.", "Note here.")["code"],
+                         [("<!-- todo -->", 1, 0)])
+        self.assertIn("comparison", sp.compare("Keep a < b.", "Keep a > b."))
+
+    def test_fence_closes_only_on_its_own_character(self):
+        diff = sp.compare("```\nmake all\n~~~\nmore\n```\n", "```\nmake all\n~~~\nless\n```\n")
+        self.assertEqual(sorted(diff), ["code"])
+
+    def test_empty_inputs(self):
+        self.assertEqual(sp.compare("", ""), {})
+        self.assertEqual(sp.compare("", "You must wait.")["modality"], [("must", 0, 1)])
+
+    def test_clean_cli_footer(self):
+        result, _ = run_cli("You should wait.", "You should wait.")
+        self.assertIn("No marker differences found.", result.stdout)
+        self.assertNotIn("Review each listed difference", result.stdout)
 
     def test_alternatives_are_compared(self):
         self.assertEqual(sp.compare("Alert if CPU is high and memory is low.",

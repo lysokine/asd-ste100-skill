@@ -42,6 +42,7 @@ On these five passages all three approaches kept the answers to the pre-written 
 
 - Five passages, one run per arm, one reader model, one scorer. No variance estimate.
 - The questions hit a ceiling: even the original scored 22 of 23. They could not detect the shifts the checker found in arm C.
+- The three-level grading scale is coarse. On P5 q4 the scorer noted that arm C replaced "sometimes" with "some", yet graded it `partial`, the same grade the original got for an unrelated omission.
 - The generators and the reader are both Claude models.
 - The passages are the owner's own text, already written with these rules in mind.
 

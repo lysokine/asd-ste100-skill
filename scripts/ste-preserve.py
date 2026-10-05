@@ -92,11 +92,8 @@ WORD_CATEGORIES = [
             "if", "unless", "when", "whenever", "until", "before", "after",
             "once", "except", "provided", "assuming", "otherwise")
     ]),
-    # A slash list (send/draft, pptx / docx) can mean "or" or "and"; see compare().
-    ("alternatives", [
-        ("or", _w("or")),
-        ("/", re.compile(r"\b[a-z][\w-]*(?:[ \t]*/[ \t]*[a-z][\w-]*)+\b")),
-    ]),
+    # Slash lists (send/draft, pptx / docx) are added separately; see compare().
+    ("alternatives", [("or", _w("or"))]),
     ("contrast", [
         ("on the other hand", _w(r"on\s+the\s+other\s+hand")),
         ("in contrast", _w(r"in\s+contrast")),
@@ -107,8 +104,10 @@ WORD_CATEGORIES = [
         "instead", "conversely", "nevertheless", "nonetheless")]),
 ]
 
-# Condition and contrast markers move legitimately when a clause is fronted, so
-# only these categories are checked for order.
+# Order is compared within each of these categories, never across them: active
+# voice ("You must log all requests") and a fronted condition move markers of
+# different kinds past each other legitimately. Conditions and contrast are left
+# out because fronting a clause moves them too.
 ORDER_CATEGORIES = ("modality", "hedges", "quantifiers", "negation")
 
 # Arrows (->, =>, <-) and doubled operators (==, <<) are not comparisons.
@@ -120,7 +119,8 @@ COMPARISON_SYMBOLS = [
     ("<", re.compile(r"(?<!<)<(?![=<-])")),
     ("=", re.compile(r"(?<![=!<>])=(?![=>])")),
 ]
-BLOCKQUOTE_RE = re.compile(r"^[ \t]*(?:>[ \t]?)+", re.M)
+BLOCKQUOTE_RE = re.compile(r"^[ \t]*(?:(?:[-*+]|\d+[.)])[ \t]+)?(?:>[ \t]?)+", re.M)
+SLASH_LIST_RE = re.compile(r"\b[a-z][\w-]*(?:[ \t]*/[ \t]*[a-z][\w-]*)+\b")
 
 CONTRACTIONS = [
     (re.compile(r"\bcannot\b"), "can not"),
@@ -153,9 +153,12 @@ NUMBER_RE = re.compile(
 )
 
 # A closing fence repeats the opening fence character at least as many times.
-FENCE_RE = re.compile(r"^ {0,3}(`{3,}|~{3,})[^\n]*\n(.*?)^ {0,3}\1[`~]*[ \t]*$", re.M | re.S)
+FENCE_RE = re.compile(
+    r"^ {0,3}(`{3,})[^\n`]*\n(.*?)^ {0,3}\1`*[ \t]*$"
+    r"|^ {0,3}(~{3,})[^\n]*\n(.*?)^ {0,3}\3~*[ \t]*$", re.M | re.S)
 INLINE_CODE_RE = re.compile(r"`([^`\n]+)`")
-URL_RE = re.compile(r"\bhttps?://(?:[^\s<>()\"']|\([^\s<>()\"']*\))+")
+URL_RE = re.compile(r"<?\bhttps?://(?:[^\s<>()\"']|\([^\s<>()\"']*\))+>?")
+MARKUP_RE = re.compile(r"<!--.*?-->|</?[A-Za-z][^<>\n]*>", re.S)
 IDENTIFIER_RE = re.compile(r"""(?<![\w/.$~-])(
       --?[A-Za-z][\w-]*                    # command-line flags
     | (?:~|\.{1,2})?/[\w.$~{}/-]+          # absolute or home-relative paths
@@ -208,7 +211,8 @@ def _extract(text):
     found.update(numbers=Counter(), code=Counter())
 
     def take_fence(match):
-        body = "\n".join(line.rstrip() for line in match.group(2).strip("\n").split("\n"))
+        content = match.group(2) if match.group(1) else match.group(4)
+        body = "\n".join(line.rstrip() for line in content.strip("\n").split("\n"))
         found["code"][f"[block] {body}"] += 1
         return "\n"
 
@@ -223,7 +227,12 @@ def _extract(text):
         return " "
 
     def take_url(match):
-        found["code"][match.group(0).rstrip(TRAILING_PUNCT)] += 1
+        url = match.group(0).strip("<>").rstrip(TRAILING_PUNCT)
+        found["code"][url] += 1
+        return " "
+
+    def take_markup(match):
+        found["code"][match.group(0)] += 1
         return " "
 
     def take_identifier(match):
@@ -236,6 +245,7 @@ def _extract(text):
     prose = FENCE_RE.sub(take_fence, text)
     prose = INLINE_CODE_RE.sub(take_span, prose)
     prose = URL_RE.sub(take_url, prose)
+    prose = MARKUP_RE.sub(take_markup, prose)
     prose = IDENTIFIER_RE.sub(take_identifier, prose)
 
     # Normalize prose only after code is removed, so code is compared verbatim.
@@ -252,15 +262,17 @@ def _extract(text):
     lowered = re.sub(r"\s+", " ", prose.lower())
     for pattern, replacement in CONTRACTIONS:
         lowered = pattern.sub(replacement, lowered)
-    ordered = []
+    ordered = {name: [] for name in ORDER_CATEGORIES}
     for name, terms in WORD_CATEGORIES:
         for item, pattern in terms:
             starts = [match.start() for match in pattern.finditer(lowered)]
             if starts:
                 found[name][item] += len(starts)
-                if name in ORDER_CATEGORIES:
-                    ordered.extend((start, item) for start in starts)
-    return found, [item for _, item in sorted(ordered)]
+                if name in ordered:
+                    ordered[name].extend((start, item) for start in starts)
+    for match in SLASH_LIST_RE.finditer(lowered):
+        found["alternatives"]["/ " + re.sub(r"\s*/\s*", "/", match.group(0))] += 1
+    return found, {name: [item for _, item in sorted(seq)] for name, seq in ordered.items()}
 
 
 def _order_difference(before, after):
@@ -280,17 +292,22 @@ def _order_difference(before, after):
 def compare(source, rewrite):
     """Return {category: [(item, source, rewrite)]} for differences.
 
-    Count rows give the item and its two counts. An "order" row appears only
-    when the ORDER_CATEGORIES markers have identical counts but a different
-    sequence; it gives the two differing sub-sequences as strings.
+    Count rows give the item and its two counts. An "order" row names one
+    ORDER_CATEGORIES category whose counts match but whose markers appear in a
+    different sequence, and gives the two differing sub-sequences as strings.
     """
     (before, seq_before), (after, seq_after) = _extract(source), _extract(rewrite)
     differences = {}
     for name in before:
         if name == "alternatives":
-            # Each slash list may become one "or" or none, so compare ranges.
+            # A slash list that is not kept verbatim may become one "or" or none,
+            # so "or" is compared as a range. Lists kept in both versions add no slack.
+            lists_b = Counter({k: v for k, v in before[name].items() if k.startswith("/ ")})
+            lists_a = Counter({k: v for k, v in after[name].items() if k.startswith("/ ")})
+            shared = sum((lists_b & lists_a).values())
             low_b, low_a = before[name]["or"], after[name]["or"]
-            high_b, high_a = low_b + before[name]["/"], low_a + after[name]["/"]
+            high_b = low_b + sum(lists_b.values()) - shared
+            high_a = low_a + sum(lists_a.values()) - shared
             if high_b < low_a or high_a < low_b:
                 differences[name] = [("or", low_b, low_a)]
             continue
@@ -300,10 +317,15 @@ def compare(source, rewrite):
                 rows.append((item, before[name][item], after[name][item]))
         if rows:
             differences[name] = rows
-    if Counter(seq_before) == Counter(seq_after):
-        moved = _order_difference(seq_before, seq_after)
+    rows = []
+    for name in ORDER_CATEGORIES:
+        if name in differences:
+            continue
+        moved = _order_difference(seq_before[name], seq_after[name])
         if moved:
-            differences["order"] = [("sequence", ", ".join(moved[0]), ", ".join(moved[1]))]
+            rows.append((name, ", ".join(moved[0]), ", ".join(moved[1])))
+    if rows:
+        differences["order"] = rows
     return differences
 
 

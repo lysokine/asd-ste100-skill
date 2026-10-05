@@ -6,9 +6,9 @@ The goal is easier reading without changing facts, uncertainty, requirements, or
 
 ## What changes in 0.7.0
 
-`ste-preserve.py` now compares comparison operators (`>=`, `<`, `~5`, `or more`), the word `or`, and the order of modality, hedge, quantifier, and negation markers, so `should A, must B` becoming `must A, should B` is reported. `ste-lint.py` closes a code fence only on a run of the opening character at least as long as the opening one.
+`ste-preserve.py` now compares comparison operators (`>=`, `<`, `~5`, `or more`), the word `or`, and the order of markers within the modality, hedge, quantifier, and negation categories, so `should A, must B` becoming `must A, should B` is reported. Moves across categories are not reported, because active voice and fronted conditions make them legitimately. `ste-lint.py` closes a code fence only on a run of the opening character at least as long as the opening one.
 
-`tests/challenge_cases.json` holds 34 deliberate corruptions and 17 legitimate paraphrases with the checker's recorded result. Version 0.7.0 flags 29 of the 34 corruptions; it misses swapped actors, an actor hidden by the passive voice, a reversed cause, and added or dropped steps. It reports 3 of the 17 paraphrases: a condition rewritten as a list (`both`), `possibly` rewritten as `may`, and two independent sentences swapped. Run `python3 tests/challenge.py` for the table.
+`tests/challenge_cases.json` holds 36 deliberate corruptions and 20 legitimate paraphrases with the checker's recorded result. Version 0.7.0 flags 30 of the 36 corruptions; it misses an `only` moved past a modal, swapped actors, an actor hidden by the passive voice, a reversed cause, and added or dropped steps. It reports 3 of the 20 paraphrases: a condition rewritten as a list (`both`), `possibly` rewritten as `may`, and two hedges that swap places when a condition is moved to the front. Run `python3 tests/challenge.py` for the table.
 
 A first pilot eval on five real passages is in [evals/pilot-01/RESULTS.md](evals/pilot-01/RESULTS.md). All three approaches kept the answers to the pre-written reader questions. The skill made the smallest edits, but a blind reader ranked its rewrites the hardest of the three to act on in four of five passages. Five passages and one run per arm are not evidence either way.
 
