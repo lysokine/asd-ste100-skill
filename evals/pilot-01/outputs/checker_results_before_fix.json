@@ -1,0 +1,208 @@
+{
+  "P1": {
+    "A skill": {},
+    "B short": {
+      "hedges": [
+        [
+          "about (number)",
+          0,
+          2
+        ]
+      ],
+      "comparison": [
+        [
+          "≈",
+          2,
+          0
+        ]
+      ],
+      "alternatives": [
+        [
+          "or",
+          1,
+          2
+        ]
+      ]
+    },
+    "C plain": {
+      "hedges": [
+        [
+          "about (number)",
+          0,
+          2
+        ]
+      ],
+      "negation": [
+        [
+          "never",
+          1,
+          0
+        ],
+        [
+          "not",
+          0,
+          1
+        ]
+      ],
+      "quantifiers": [
+        [
+          "up to",
+          0,
+          1
+        ]
+      ],
+      "comparison": [
+        [
+          "≈",
+          2,
+          0
+        ]
+      ],
+      "conditions": [
+        [
+          "after",
+          0,
+          1
+        ]
+      ],
+      "alternatives": [
+        [
+          "or",
+          1,
+          2
+        ]
+      ],
+      "contrast": [
+        [
+          "but",
+          1,
+          2
+        ]
+      ]
+    }
+  },
+  "P2": {
+    "A skill": {
+      "alternatives": [
+        [
+          "or",
+          2,
+          3
+        ]
+      ]
+    },
+    "B short": {
+      "alternatives": [
+        [
+          "or",
+          2,
+          3
+        ]
+      ]
+    },
+    "C plain": {
+      "alternatives": [
+        [
+          "or",
+          2,
+          4
+        ]
+      ]
+    }
+  },
+  "P3": {
+    "A skill": {},
+    "B short": {},
+    "C plain": {
+      "quantifiers": [
+        [
+          "any",
+          1,
+          2
+        ]
+      ]
+    }
+  },
+  "P4": {
+    "A skill": {},
+    "B short": {
+      "alternatives": [
+        [
+          "or",
+          0,
+          1
+        ]
+      ]
+    },
+    "C plain": {
+      "quantifiers": [
+        [
+          "all",
+          0,
+          1
+        ],
+        [
+          "many",
+          0,
+          1
+        ]
+      ],
+      "alternatives": [
+        [
+          "or",
+          0,
+          1
+        ]
+      ]
+    }
+  },
+  "P5": {
+    "A skill": {},
+    "B short": {
+      "modality": [
+        [
+          "can",
+          0,
+          1
+        ]
+      ],
+      "negation": [
+        [
+          "not",
+          1,
+          0
+        ]
+      ]
+    },
+    "C plain": {
+      "frequency": [
+        [
+          "sometimes",
+          1,
+          0
+        ]
+      ],
+      "negation": [
+        [
+          "not",
+          1,
+          0
+        ]
+      ],
+      "quantifiers": [
+        [
+          "some",
+          0,
+          1
+        ]
+      ],
+      "conditions": [
+        [
+          "before",
+          1,
+          2
+        ]
+      ]
+    }
+  }
+}

@@ -1,0 +1,426 @@
+{
+  "P1": {
+    "q1": {
+      "V1": [
+        "correct",
+        "Prohibits multi-GPU and multi-node use for the expected reason."
+      ],
+      "V2": [
+        "correct",
+        "Prohibits multi-GPU and multi-node use for the expected reason."
+      ],
+      "V3": [
+        "correct",
+        "Prohibits multi-GPU and multi-node use for the expected reason."
+      ],
+      "V4": [
+        "correct",
+        "Prohibits multi-GPU and multi-node use for the expected reason."
+      ]
+    },
+    "q2": {
+      "V1": [
+        "correct",
+        "Preserves approximate slowdown and evidence limited to one small fp32 CNN measurement."
+      ],
+      "V2": [
+        "correct",
+        "Preserves approximate slowdown and evidence limited to one small fp32 CNN measurement."
+      ],
+      "V3": [
+        "correct",
+        "Preserves approximate slowdown and evidence limited to one small fp32 CNN measurement."
+      ],
+      "V4": [
+        "correct",
+        "Preserves approximate slowdown and evidence limited to one small fp32 CNN measurement."
+      ]
+    },
+    "q3": {
+      "V1": [
+        "correct",
+        "Preserves approximate 85-second, one-time JIT compilation cost."
+      ],
+      "V2": [
+        "correct",
+        "Preserves approximate 85-second, one-time JIT compilation cost."
+      ],
+      "V3": [
+        "correct",
+        "Preserves approximate 85-second, one-time JIT compilation cost."
+      ],
+      "V4": [
+        "correct",
+        "Preserves approximate 85-second, one-time JIT compilation cost."
+      ]
+    },
+    "q4": {
+      "V1": [
+        "correct",
+        "States the architecture mismatch and resulting PTX JIT execution as facts."
+      ],
+      "V2": [
+        "correct",
+        "States the architecture mismatch and resulting PTX JIT execution as facts."
+      ],
+      "V3": [
+        "correct",
+        "States the architecture mismatch and resulting PTX JIT execution as facts."
+      ],
+      "V4": [
+        "correct",
+        "States the architecture mismatch and resulting PTX JIT execution as facts."
+      ]
+    },
+    "q5": {
+      "V1": [
+        "correct",
+        "Affirms suitability for single-GPU work."
+      ],
+      "V2": [
+        "correct",
+        "Affirms suitability for single-GPU work."
+      ],
+      "V3": [
+        "correct",
+        "Affirms suitability for single-GPU work."
+      ],
+      "V4": [
+        "correct",
+        "Affirms suitability for single-GPU work."
+      ]
+    }
+  },
+  "P2": {
+    "q1": {
+      "V1": [
+        "correct",
+        "Identifies the user as the default recipient through a DM."
+      ],
+      "V2": [
+        "correct",
+        "Identifies the user as the default recipient through a DM."
+      ],
+      "V3": [
+        "correct",
+        "Identifies the user as the default recipient through a DM."
+      ],
+      "V4": [
+        "correct",
+        "Identifies the user as the default recipient through a DM."
+      ]
+    },
+    "q2": {
+      "V1": [
+        "correct",
+        "Requires explicit user instructions naming another person or channel."
+      ],
+      "V2": [
+        "correct",
+        "Requires explicit user instructions naming another person or channel."
+      ],
+      "V3": [
+        "correct",
+        "Requires explicit user instructions naming another person or channel."
+      ],
+      "V4": [
+        "correct",
+        "Requires explicit user instructions naming another person or channel."
+      ]
+    },
+    "q3": {
+      "V1": [
+        "correct",
+        "Requires confirmation with the user before sending, even with explicit destination instructions."
+      ],
+      "V2": [
+        "correct",
+        "Requires confirmation with the user before sending, even with explicit destination instructions."
+      ],
+      "V3": [
+        "correct",
+        "Requires confirmation with the user before sending, even with explicit destination instructions."
+      ],
+      "V4": [
+        "correct",
+        "Requires confirmation with the user before sending, even with explicit destination instructions."
+      ]
+    },
+    "q4": {
+      "V1": [
+        "correct",
+        "Includes drafts in the default DM rule."
+      ],
+      "V2": [
+        "correct",
+        "Includes drafts in the default DM rule."
+      ],
+      "V3": [
+        "correct",
+        "Includes drafts in the default DM rule."
+      ],
+      "V4": [
+        "correct",
+        "Includes drafts in the default DM rule."
+      ]
+    }
+  },
+  "P3": {
+    "q1": {
+      "V1": [
+        "correct",
+        "Specifies checking bjobs for a running job using that environment."
+      ],
+      "V2": [
+        "correct",
+        "Specifies checking bjobs for a running job using that environment."
+      ],
+      "V3": [
+        "correct",
+        "Specifies checking bjobs for a running job using that environment."
+      ],
+      "V4": [
+        "correct",
+        "Specifies checking bjobs for a running job using that environment."
+      ]
+    },
+    "q2": {
+      "V1": [
+        "correct",
+        "Preserves both options: wait for completion or install into a clone."
+      ],
+      "V2": [
+        "correct",
+        "Preserves both options: wait for completion or install into a clone."
+      ],
+      "V3": [
+        "correct",
+        "Preserves both options: wait for completion or install into a clone."
+      ],
+      "V4": [
+        "correct",
+        "Preserves both options: wait for completion or install into a clone."
+      ]
+    },
+    "q3": {
+      "V1": [
+        "correct",
+        "Preserves the possibility, without certainty, of later imports loading the new version."
+      ],
+      "V2": [
+        "correct",
+        "Preserves the possibility, without certainty, of later imports loading the new version."
+      ],
+      "V3": [
+        "correct",
+        "Preserves the possibility, without certainty, of later imports loading the new version."
+      ],
+      "V4": [
+        "correct",
+        "Preserves the possibility, without certainty, of later imports loading the new version."
+      ]
+    },
+    "q4": {
+      "V1": [
+        "correct",
+        "Requires immediate pip freeze to the pinned requirements file and recording the date."
+      ],
+      "V2": [
+        "correct",
+        "Requires immediate pip freeze to the pinned requirements file and recording the date."
+      ],
+      "V3": [
+        "correct",
+        "Requires immediate pip freeze to the pinned requirements file and recording the date."
+      ],
+      "V4": [
+        "correct",
+        "Requires immediate pip freeze to the pinned requirements file and recording the date."
+      ]
+    }
+  },
+  "P4": {
+    "q1": {
+      "V1": [
+        "correct",
+        "Preserves the upload request, four deliverable types, and absence of a specified folder."
+      ],
+      "V2": [
+        "correct",
+        "Preserves the upload request, four deliverable types, and absence of a specified folder."
+      ],
+      "V3": [
+        "correct",
+        "Preserves the upload request, four deliverable types, and absence of a specified folder."
+      ],
+      "V4": [
+        "correct",
+        "Preserves the upload request, four deliverable types, and absence of a specified folder."
+      ]
+    },
+    "q2": {
+      "V1": [
+        "correct",
+        "Requires listing the folder and checking for a matching filename."
+      ],
+      "V2": [
+        "correct",
+        "Requires listing the folder and checking for a matching filename."
+      ],
+      "V3": [
+        "correct",
+        "Requires listing the folder and checking for a matching filename."
+      ],
+      "V4": [
+        "correct",
+        "Requires listing the folder and checking for a matching filename."
+      ]
+    },
+    "q3": {
+      "V1": [
+        "correct",
+        "Prohibits overwriting others' files and preserves uncertainty about one's own files."
+      ],
+      "V2": [
+        "correct",
+        "Prohibits overwriting others' files and preserves uncertainty about one's own files."
+      ],
+      "V3": [
+        "correct",
+        "Prohibits overwriting others' files and preserves uncertainty about one's own files."
+      ],
+      "V4": [
+        "correct",
+        "Prohibits overwriting others' files and preserves uncertainty about one's own files."
+      ]
+    },
+    "q4": {
+      "V1": [
+        "correct",
+        "Requires staging in one local folder and copying that folder once."
+      ],
+      "V2": [
+        "correct",
+        "Requires staging in one local folder and copying that folder once."
+      ],
+      "V3": [
+        "correct",
+        "Requires staging in one local folder and copying that folder once."
+      ],
+      "V4": [
+        "correct",
+        "Requires staging in one local folder and copying that folder once."
+      ]
+    },
+    "q5": {
+      "V1": [
+        "correct",
+        "Preserves checksum verification, one-way checking, matching-file count, and prohibition of size-only verification."
+      ],
+      "V2": [
+        "correct",
+        "Preserves checksum verification, one-way checking, matching-file count, and prohibition of size-only verification."
+      ],
+      "V3": [
+        "correct",
+        "Preserves checksum verification, one-way checking, matching-file count, and prohibition of size-only verification."
+      ],
+      "V4": [
+        "correct",
+        "Preserves checksum verification, one-way checking, matching-file count, and prohibition of size-only verification."
+      ]
+    }
+  },
+  "P5": {
+    "q1": {
+      "V1": [
+        "correct",
+        "Identifies all three data categories requiring prior permission."
+      ],
+      "V2": [
+        "correct",
+        "Identifies all three data categories requiring prior permission."
+      ],
+      "V3": [
+        "correct",
+        "Identifies all three data categories requiring prior permission."
+      ],
+      "V4": [
+        "correct",
+        "Identifies all three data categories requiring prior permission."
+      ]
+    },
+    "q2": {
+      "V1": [
+        "correct",
+        "Affirms that the user's own analyses may be sent."
+      ],
+      "V2": [
+        "correct",
+        "Affirms that the user's own analyses may be sent."
+      ],
+      "V3": [
+        "correct",
+        "Affirms that the user's own analyses may be sent."
+      ],
+      "V4": [
+        "correct",
+        "Affirms that the user's own analyses may be sent."
+      ]
+    },
+    "q3": {
+      "V1": [
+        "correct",
+        "Requires opening the cited file and line to confirm the finding before applying it."
+      ],
+      "V2": [
+        "correct",
+        "Requires opening the cited file and line to confirm the finding before applying it."
+      ],
+      "V3": [
+        "correct",
+        "Requires opening the cited file and line to confirm the finding before applying it."
+      ],
+      "V4": [
+        "correct",
+        "Requires opening the cited file and line to confirm the finding before applying it."
+      ]
+    },
+    "q4": {
+      "V1": [
+        "partial",
+        "Preserves sometimes and past tense, but omits the limitation to one past review."
+      ],
+      "V2": [
+        "partial",
+        "Preserves sometimes and past tense, but omits the limitation to one past review."
+      ],
+      "V3": [
+        "partial",
+        "Preserves sometimes and past tense, but omits the limitation to one past review."
+      ],
+      "V4": [
+        "partial",
+        "Replaces sometimes with some wording and omits the limitation to one past review."
+      ]
+    },
+    "q5": {
+      "V1": [
+        "correct",
+        "Preserves the author's voice and the minimum effective edit requirement."
+      ],
+      "V2": [
+        "correct",
+        "Preserves the author's voice and the minimum effective edit requirement."
+      ],
+      "V3": [
+        "correct",
+        "Preserves the author's voice and the minimum effective edit requirement."
+      ],
+      "V4": [
+        "correct",
+        "Preserves the author's voice and the minimum effective edit requirement."
+      ]
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "P1": {
+    "V1": "original",
+    "V2": "A_skill",
+    "V3": "C_plain",
+    "V4": "B_short"
+  },
+  "P2": {
+    "V1": "A_skill",
+    "V2": "B_short",
+    "V3": "original",
+    "V4": "C_plain"
+  },
+  "P3": {
+    "V1": "A_skill",
+    "V2": "B_short",
+    "V3": "C_plain",
+    "V4": "original"
+  },
+  "P4": {
+    "V1": "original",
+    "V2": "A_skill",
+    "V3": "C_plain",
+    "V4": "B_short"
+  },
+  "P5": {
+    "V1": "original",
+    "V2": "A_skill",
+    "V3": "B_short",
+    "V4": "C_plain"
+  }
+}

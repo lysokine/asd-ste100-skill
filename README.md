@@ -10,6 +10,8 @@ The goal is easier reading without changing facts, uncertainty, requirements, or
 
 `tests/challenge_cases.json` holds 34 deliberate corruptions and 17 legitimate paraphrases with the checker's recorded result. Version 0.7.0 flags 29 of the 34 corruptions; it misses swapped actors, an actor hidden by the passive voice, a reversed cause, and added or dropped steps. It reports 3 of the 17 paraphrases: a condition rewritten as a list (`both`), `possibly` rewritten as `may`, and two independent sentences swapped. Run `python3 tests/challenge.py` for the table.
 
+A first pilot eval on five real passages is in [evals/pilot-01/RESULTS.md](evals/pilot-01/RESULTS.md). All three approaches kept the answers to the pre-written reader questions. The skill made the smallest edits, but a blind reader ranked its rewrites the hardest of the three to act on in four of five passages. Five passages and one run per arm are not evidence either way.
+
 ## What changes in 0.6.0
 
 Version 0.6.0 adds `scripts/ste-preserve.py`, a read-only check that compares a source with its rewrite. It lists modality, hedges, frequency words, negation, quantifiers, condition and contrast markers, numbers with units, code, and identifiers whose counts differ. It catches the most harmful rewrite failure, a hedge or a `should` that silently becomes a certainty or a `must`, when the changed word is on its lists: for example `may`, `should`, `will`, `possibly`, `unclear`, `we think`, or `about 30`. A hedge phrased some other way can still slip through.

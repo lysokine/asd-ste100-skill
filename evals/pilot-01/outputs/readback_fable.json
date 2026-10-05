@@ -1,0 +1,189 @@
+{
+  "P1": {
+    "answers": {
+      "V1": [
+        "No. \"it has no NVLink/InfiniBand, so never for multi-GPU or multi-node\".",
+        "About 5% slower in steady state (\"then ~5% slower than A100 in steady state\"). Evidence is one benchmark on a single small workload: \"Measured cost of that on a small fp32 CNN\" — no replicates, variance, or other models stated.",
+        "A one-time JIT compilation hit of about 85 s: \"one-time ~85 s JIT hit\".",
+        "Because the card is sm_120 while \"the conda environments' PyTorch only ships kernels to sm_90 — it runs via driver PTX JIT, but nothing is precompiled\".",
+        "Yes. \"Fine for single-GPU work\"."
+      ],
+      "V2": [
+        "No. \"It has no NVLink/InfiniBand, so never use it for multi-GPU or multi-node work.\"",
+        "About 5% slower in steady state (\"then ~5% slower than A100 in steady state\"). Evidence is a single measured benchmark on one small workload: \"The measured cost of this on a small fp32 CNN\" — no replicate count or variance stated.",
+        "A one-time JIT hit of about 85 s: \"a one-time JIT hit of ~85 s\".",
+        "Because the card is sm_120 \"and the PyTorch in the conda environments only ships kernels to sm_90. PyTorch runs on the card via driver PTX JIT, but nothing is precompiled.\"",
+        "Yes. \"The queue is fine for single-GPU work.\""
+      ],
+      "V3": [
+        "No. \"It has no NVLink or InfiniBand, so do not use it for multi-GPU or multi-node jobs.\"",
+        "About 5% slower: \"steady-state speed was about 5% slower than A100\". Evidence is one benchmark on one small workload: \"On a small fp32 CNN\" — no replicates, error bars, or additional models stated.",
+        "A one-time JIT delay of about 85 s: \"this cost a one-time JIT delay of about 85 s\".",
+        "Because the card is sm_120 and \"the PyTorch builds in the conda environments include precompiled kernels only up to sm_90. Code still runs, because the driver JIT-compiles the PTX at load time, but nothing is precompiled for this card.\"",
+        "Yes. \"The queue is fine for single-GPU work.\""
+      ],
+      "V4": [
+        "No. \"It has no NVLink or InfiniBand, so never use it for multi-GPU or multi-node work.\"",
+        "About 5% slower in steady state (\"then about 5% slower than A100 in steady state\"). Evidence is a single measurement on one small workload: \"On a small fp32 CNN, the measured cost was...\" — no replicate count or variance stated.",
+        "A one-time JIT delay of about 85 s: \"a one-time JIT delay of about 85 s\".",
+        "Because the card is sm_120 \"and the PyTorch in the conda environments only ships kernels to sm_90. PyTorch runs on the card through driver PTX JIT compilation, but nothing is precompiled for it.\"",
+        "Yes. \"The queue is fine for single-GPU work.\""
+      ]
+    },
+    "ranking": [
+      "V3",
+      "V4",
+      "V2",
+      "V1"
+    ],
+    "reason": "V3 is easiest because it spells out the mechanism (\"the driver JIT-compiles the PTX at load time\") and puts the one-time delay and the steady-state penalty in separate sentences; V4 then V2 are clear but keep the compressed \"~85 s, then ~5%\" clause; V1 is hardest because its semicolons and telegraphic fragments (\"Measured cost of that\", \"so never for multi-GPU\") drop the verbs that say who does what."
+  },
+  "P2": {
+    "answers": {
+      "V1": [
+        "The user, as a DM to themselves: \"send or draft it as a DM to the user themselves, so that the user can review and forward it\".",
+        "Only if \"the user explicitly says 'send to <person>' or 'post in <channel>'\".",
+        "No. \"Even then, confirm with the user before you send it.\"",
+        "Yes. It is triggered by \"'draft a message'\" and the action is \"send or draft it as a DM to the user themselves\"."
+      ],
+      "V2": [
+        "The user, as a DM: \"send or draft it as a DM to the user so they can review and forward it\".",
+        "Only if \"the user explicitly says 'send to <person>' or 'post in <channel>'\".",
+        "No. \"Even then, confirm with the user before sending.\"",
+        "Yes. Triggers include \"'draft a message'\" and the instruction is to \"send or draft it as a DM to the user\"."
+      ],
+      "V3": [
+        "The user, as a DM: \"send/draft it as a DM to the user themselves so they can review and forward\".",
+        "Only if \"the user explicitly says 'send to <person>' or 'post in <channel>'\".",
+        "No. \"Even then, confirm with the user before sending.\"",
+        "Yes. Triggers include \"'draft a message'\" and the rule covers \"send/draft it as a DM\"."
+      ],
+      "V4": [
+        "The user, as a DM: \"send or draft it as a DM to the user so they can review it and forward it\".",
+        "Only if \"the user explicitly says 'send to <person>' or 'post in <channel>'\".",
+        "No. \"Even then, confirm with the user before sending.\"",
+        "Yes. Triggers include \"'draft a message'\" and the action is \"send or draft it as a DM\"."
+      ]
+    },
+    "ranking": [
+      "V4",
+      "V1",
+      "V2",
+      "V3"
+    ],
+    "reason": "V4 is easiest because it names the two forbidden destinations separately (\"directly to another person or to a channel\") instead of burying channels in a parenthetical after \"another person\", and V1 is next for its full \"send a message directly to another person\" phrasing, while V2's vague \"anyone else\" and V3's clipped \"send/draft\" and object-less \"review and forward\" make them the hardest to read off cleanly."
+  },
+  "P3": {
+    "answers": {
+      "V1": [
+        "Run `bjobs` first to see whether a cluster job using that env is still running: \"Check `bjobs` first.\"",
+        "\"either wait for it, or run `mamba create -n <env>_v2 --clone <env>` and install into the clone\".",
+        "No, not definitely. \"Modules that are already imported stay in memory, but anything imported afterwards may load the new version.\"",
+        "\"immediately run `pip freeze > env/<name>_pinned_requirements.txt` and note the date, so that results can be traced to a known package set\"."
+      ],
+      "V2": [
+        "Run `bjobs` first to check for a live job using that env: \"Check `bjobs` first.\"",
+        "\"either wait for it to finish, or run `mamba create -n <env>_v2 --clone <env>` and install into the clone\".",
+        "No, not definitely. \"anything imported afterwards may load the new version\".",
+        "\"immediately run `pip freeze > env/<name>_pinned_requirements.txt` and note the date, so results can be traced to a known package set\"."
+      ],
+      "V3": [
+        "Run `bjobs` first to see whether a cluster job that uses that env is running: \"Check `bjobs` first.\"",
+        "\"either wait for it to finish or run `mamba create -n <env>_v2 --clone <env>` and install into the clone\".",
+        "No, not definitely. \"any module it imports later may load the new version\".",
+        "\"immediately run `pip freeze > env/<name>_pinned_requirements.txt` and record the date, so that results can be traced to a known set of packages\"."
+      ],
+      "V4": [
+        "Run `bjobs` first to check for a live job using that env: \"Check `bjobs` first.\"",
+        "\"either wait for it or `mamba create -n <env>_v2 --clone <env>` and install into the clone\".",
+        "No, not definitely. \"anything imported afterwards may load the new version\".",
+        "\"immediately `pip freeze > env/<name>_pinned_requirements.txt` and note the date, so results can be traced to a known package set\"."
+      ]
+    },
+    "ranking": [
+      "V3",
+      "V2",
+      "V1",
+      "V4"
+    ],
+    "reason": "V3 is easiest because it names the actor for every clause (\"packages such as numpy or scipy\", \"any module it imports later\") and says \"wait for it to finish\" rather than the ambiguous \"wait for it\"; V2 keeps \"to finish\" but not the rest, V1 drops it, and V4 is hardest because it elides the verbs (\"or `mamba create ...`\", \"immediately `pip freeze ...`\") and fuses the memory caveat onto the pip warning with a colon."
+  },
+  "P4": {
+    "answers": {
+      "V1": [
+        "When the user says \"upload to Google Drive\" \"for a pptx / docx / pdf / html deliverable and give no folder\".",
+        "\"list the folder and check for a file with the same name\".",
+        "Not someone else's: \"don't overwrite someone else's file\". Whether you may overwrite your own same-named file is not stated.",
+        "\"Stage the files in one local folder, `rclone copy` the folder once\".",
+        "With \"`rclone check --checksum --one-way <stage> drive: --drive-root-folder-id <ID>`\", and \"report the matching-file count\"; \"Never `--size-only`.\""
+      ],
+      "V2": [
+        "When the user says \"upload to Google Drive\" \"for a pptx / docx / pdf / html deliverable and give no folder\".",
+        "\"list the folder and check for a file with the same name\".",
+        "Not someone else's: \"Don't overwrite someone else's file.\" Overwriting your own same-named file is not stated.",
+        "\"Stage the files in one local folder, and `rclone copy` the folder once.\"",
+        "With \"`rclone check --checksum --one-way <stage> drive: --drive-root-folder-id <ID>`\", and \"report the matching-file count\"; \"Never use `--size-only`.\""
+      ],
+      "V3": [
+        "When the user says \"upload to Google Drive\" \"for a .pptx, .docx, .pdf, or .html deliverable and give no folder\".",
+        "\"list the folder and check for a file with the same name\".",
+        "Not someone else's: \"Do not overwrite someone else's file.\" Overwriting your own same-named file is not stated.",
+        "\"Put all the files in one local staging folder and run `rclone copy` once on that folder.\"",
+        "With \"`rclone check --checksum --one-way <stage> drive: --drive-root-folder-id <ID>`\", and \"report how many files matched\"; \"Never verify with `--size-only`.\""
+      ],
+      "V4": [
+        "When the user says \"upload to Google Drive\" \"for a pptx, docx, pdf, or html deliverable and give no folder\".",
+        "\"list the folder and check it for a file with the same name as the one you are uploading\".",
+        "Not someone else's: \"Don't overwrite someone else's file.\" Overwriting your own same-named file is not stated.",
+        "\"Stage the files in one local folder, run `rclone copy` on that folder once\".",
+        "With \"`rclone check --checksum --one-way <stage> drive: --drive-root-folder-id <ID>`\", and \"report the matching-file count\"; \"Never use `--size-only`.\""
+      ]
+    },
+    "ranking": [
+      "V4",
+      "V3",
+      "V2",
+      "V1"
+    ],
+    "reason": "V4 is easiest because it says which name to compare against (\"a file with the same name as the one you are uploading\") and attaches the single `rclone copy` explicitly to the staging folder; V3 is close behind with explicit extensions and \"Never verify with `--size-only`\", while V2 and especially V1 compress the staging, copy, and verify steps into comma-spliced clauses with a bare \"Never `--size-only`\"."
+  },
+  "P5": {
+    "answers": {
+      "V1": [
+        "\"patient data, embargoed collaborator data, or anything the user marked sensitive\" — \"ask first\" (whom to ask is not stated).",
+        "Yes. \"Fine for the user's own analyses\".",
+        "Verify it: \"Verify every finding before applying it... open the cited file/line and confirm.\"",
+        "No, not always. \"its suggested wording sometimes over-corrected\".",
+        "\"keep the author's voice and make the minimum effective edit\"."
+      ],
+      "V2": [
+        "\"patient data, embargoed collaborator data, or anything that the user marked sensitive\" — \"Ask first\" (addressee not stated).",
+        "Yes. \"This is fine for the user's own analyses.\"",
+        "\"Verify every finding before you apply it... open the cited file/line and confirm the finding.\"",
+        "No, not always. \"the wording that Codex suggested sometimes over-corrected\".",
+        "\"Keep the author's voice and make the minimum effective edit.\""
+      ],
+      "V3": [
+        "\"patient data, embargoed collaborator data, or anything the user marked sensitive\" — \"ask the user first\".",
+        "Yes. \"This is fine for the user's own analyses.\"",
+        "\"Verify every finding before applying it... open the cited file and line and confirm.\"",
+        "No, not always. \"Codex's suggested wording sometimes over-corrected\".",
+        "\"Keep the author's voice and make the minimum effective edit.\""
+      ],
+      "V4": [
+        "\"patient data, embargoed collaborator data, or anything the user has marked as sensitive\" — \"Ask the user before sending\" them.",
+        "Yes. \"This is fine for the user's own analyses.\"",
+        "\"Verify every Codex finding before you apply it. Open the cited file and line, and confirm the problem is there.\"",
+        "No, not always. \"some of the suggested wording over-corrected\".",
+        "\"Keep the author's voice and make the minimum effective edit.\""
+      ]
+    },
+    "ranking": [
+      "V4",
+      "V3",
+      "V2",
+      "V1"
+    ],
+    "reason": "V4 is easiest because it names both the addressee and the triggering act (\"Ask the user before sending patient data...\") and states the verification as its own imperative sentence; V3 also names the user but keeps the compressed \"a reviewer and its findings can be wrong\" clause, while V2 and especially V1 leave \"ask first\" without an addressee and V1's semicolon fragments and \"not an oracle\" metaphor make the required action least explicit."
+  }
+}

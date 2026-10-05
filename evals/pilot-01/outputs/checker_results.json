@@ -1,0 +1,134 @@
+{
+  "P1": {
+    "A_skill": {},
+    "B_short": {},
+    "C_plain": {
+      "negation": [
+        [
+          "never",
+          1,
+          0
+        ],
+        [
+          "not",
+          0,
+          1
+        ]
+      ],
+      "quantifiers": [
+        [
+          "up to",
+          0,
+          1
+        ]
+      ],
+      "conditions": [
+        [
+          "after",
+          0,
+          1
+        ]
+      ],
+      "contrast": [
+        [
+          "but",
+          1,
+          2
+        ]
+      ]
+    }
+  },
+  "P2": {
+    "A_skill": {},
+    "B_short": {},
+    "C_plain": {
+      "alternatives": [
+        [
+          "or",
+          2,
+          4
+        ]
+      ]
+    }
+  },
+  "P3": {
+    "A_skill": {},
+    "B_short": {},
+    "C_plain": {
+      "quantifiers": [
+        [
+          "any",
+          1,
+          2
+        ]
+      ]
+    }
+  },
+  "P4": {
+    "A_skill": {},
+    "B_short": {},
+    "C_plain": {
+      "quantifiers": [
+        [
+          "all",
+          0,
+          1
+        ],
+        [
+          "many",
+          0,
+          1
+        ]
+      ]
+    }
+  },
+  "P5": {
+    "A_skill": {},
+    "B_short": {
+      "modality": [
+        [
+          "can",
+          0,
+          1
+        ]
+      ],
+      "negation": [
+        [
+          "not",
+          1,
+          0
+        ]
+      ]
+    },
+    "C_plain": {
+      "frequency": [
+        [
+          "sometimes",
+          1,
+          0
+        ]
+      ],
+      "negation": [
+        [
+          "not",
+          1,
+          0
+        ]
+      ],
+      "quantifiers": [
+        [
+          "some",
+          0,
+          1
+        ]
+      ],
+      "conditions": [
+        [
+          "before",
+          1,
+          2
+        ]
+      ]
+    }
+  }
+}

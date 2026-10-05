@@ -1,0 +1,14 @@
+{
+  "P1": "The RTX PRO 6000 queue has the most free capacity and needs the newest software. In one measurement, 58 of its 64 GPUs were idle while the A100 queue had 900 jobs pending against 10 free GPUs. The queue is idle because the card is sm_120, and the PyTorch in the conda environments only ships kernels to sm_90. PyTorch runs on the card via driver PTX JIT, but nothing is precompiled. The measured cost of this on a small fp32 CNN was a one-time JIT hit of ~85 s, then ~5% slower than A100 in steady state. The queue is fine for single-GPU work. It has no NVLink/InfiniBand, so never use it for multi-GPU or multi-node work.",
+  "P2": "Slack messages always go to the user by default. When you are asked to \"send a slack message\", \"draft a message\", or similar, send or draft it as a DM to the user themselves, so that the user can review and forward it. NEVER send a message directly to another person (collaborators, channels, etc.) unless the user explicitly says \"send to <person>\" or \"post in <channel>\". Even then, confirm with the user before you send it.",
+  "P3": "Never install packages into a conda env while a cluster job that uses that env is still running. Check `bjobs` first. If a job is live, either wait for it, or run `mamba create -n <env>_v2 --clone <env>` and install into the clone. pip can silently replace numpy or scipy on disk underneath the live Python process. Modules that are already imported stay in memory, but anything imported afterwards may load the new version. After ANY env change, immediately run `pip freeze > env/<name>_pinned_requirements.txt` and note the date, so that results can be traced to a known package set.",
+  "P4": "When I say \"upload to Google Drive\" for a pptx / docx / pdf / html deliverable and give no folder, the default destination is the team deliverables folder, via the rclone remote `drive:` with `--drive-root-folder-id <ID>`. Before you upload, list the folder and check for a file with the same name. Don't overwrite someone else's file. Stage the files in one local folder, and `rclone copy` the folder once. Then verify with `rclone check --checksum --one-way <stage> drive: --drive-root-folder-id <ID>` and report the matching-file count. Never use `--size-only`.",
+  "P5": "Codex sends the prompt and every file that it reads to OpenAI. This is fine for the user's own analyses. Ask first for patient data, embargoed collaborator data, or anything that the user marked sensitive. Verify every finding before you apply it. Codex is a reviewer, not an oracle: open the cited file/line and confirm the finding. In one past review, all \"must fix\" items held up, but the wording that Codex suggested sometimes over-corrected. Keep the author's voice and make the minimum effective edit.",
+  "notes": {
+    "P1": "",
+    "P2": "",
+    "P3": "",
+    "P4": "",
+    "P5": ""
+  }
+}
