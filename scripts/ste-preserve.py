@@ -109,7 +109,7 @@ WORD_NUMBERS = {
     "six": "6", "seven": "7", "eight": "8", "nine": "9", "ten": "10",
     "eleven": "11", "twelve": "12", "twice": "2",
 }
-WORD_NUMBER_RE = _w("|".join(WORD_NUMBERS))
+WORD_NUMBER_RE = re.compile(r"\b(?:" + "|".join(WORD_NUMBERS) + r")\b", re.I)
 
 UNITS = {
     "%": "%", "percent": "%", "ms": "ms", "s": "s", "sec": "s", "secs": "s",
@@ -119,15 +119,16 @@ UNITS = {
     "wk": "wk", "wks": "wk", "byte": "B", "bytes": "B",
 }
 NUMBER_RE = re.compile(
-    r"(?<![\w.])([-+]?\d+(?:[.,:]\d+)*)"
+    r"(?<![\w.])([-+]?(?:\d+(?:[.,:]\d+)*|\.\d+)(?:[eE][-+]?\d+)?)"
     r"(?:\s*(%|(?:ms|secs?|seconds?|s|mins?|minutes?|hrs?|hours?|h|days?|weeks?|wks?"
     r"|percent|bytes?|[kmgtp]i?b)\b))?",
     re.I,
 )
 
-FENCE_RE = re.compile(r"^ {0,3}(```|~~~)[^\n]*\n(.*?)^ {0,3}\1[ \t]*$", re.M | re.S)
+# A closing fence repeats the opening fence character at least as many times.
+FENCE_RE = re.compile(r"^ {0,3}(`{3,}|~{3,})[^\n]*\n(.*?)^ {0,3}\1[`~]*[ \t]*$", re.M | re.S)
 INLINE_CODE_RE = re.compile(r"`([^`\n]+)`")
-URL_RE = re.compile(r"\bhttps?://[^\s<>()\"']+")
+URL_RE = re.compile(r"\bhttps?://(?:[^\s<>()\"']|\([^\s<>()\"']*\))+")
 IDENTIFIER_RE = re.compile(r"""(?<![\w/.$~-])(
       --?[A-Za-z][\w-]*                    # command-line flags
     | (?:~|\.{1,2})?/[\w.$~{}/-]+          # absolute or home-relative paths
@@ -165,8 +166,7 @@ def _is_identifier(item):
 
 def extract(text):
     """Return {category: Counter} of the meaning markers in one text."""
-    text = (text.replace("\r\n", "\n").replace("’", "'").replace("‘", "'")
-            .replace("−", "-"))
+    text = text.replace("\r\n", "\n")
     found = {name: Counter() for name, _ in WORD_CATEGORIES}
     found.update(numbers=Counter(), code=Counter())
 
@@ -201,14 +201,15 @@ def extract(text):
     prose = URL_RE.sub(take_url, prose)
     prose = IDENTIFIER_RE.sub(take_identifier, prose)
 
+    # Normalize prose only after code is removed, so code is compared verbatim.
+    prose = (prose.replace("’", "'").replace("‘", "'").replace("−", "-"))
+    prose = WORD_NUMBER_RE.sub(lambda match: WORD_NUMBERS[match.group(0).lower()], prose)
     for match in NUMBER_RE.finditer(prose):
         found["numbers"][_number_item(match.group(1), match.group(2))] += 1
 
-    lowered = prose.lower()
+    lowered = re.sub(r"\s+", " ", prose.lower())
     for pattern, replacement in CONTRACTIONS:
         lowered = pattern.sub(replacement, lowered)
-    for match in WORD_NUMBER_RE.finditer(lowered):
-        found["numbers"][WORD_NUMBERS[match.group(0)]] += 1
     for name, terms in WORD_CATEGORIES:
         for item, pattern in terms:
             count = len(pattern.findall(lowered))

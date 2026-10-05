@@ -191,6 +191,40 @@ class PreserveTests(unittest.TestCase):
                          [("-5", 1, 0), ("5", 0, 1)])
         self.assertEqual(sp.compare("Use 5-10 workers.", "Use 5-10 workers."), {})
 
+    def test_leading_dot_and_scientific_numbers(self):
+        self.assertEqual(sp.compare("Set the tolerance to .5.", "Set the tolerance to .9.")["numbers"],
+                         [(".5", 1, 0), (".9", 0, 1)])
+        self.assertEqual(sp.compare("Set the limit to 1e3.", "Set the limit to 1e6.")["numbers"],
+                         [("1e3", 1, 0), ("1e6", 0, 1)])
+        self.assertEqual(sp.compare("Use 2.5e-3 s.", "Use 2.5e-3 s."), {})
+
+    def test_code_is_not_unicode_normalized(self):
+        diff = sp.compare('Run `print("−")`.', 'Run `print("-")`.')
+        self.assertEqual(sorted(diff), ["code"])
+        self.assertEqual(sp.compare("Set the offset to −5.", "Set the offset to -5."), {})
+
+    def test_longer_fences_are_code(self):
+        diff = sp.compare("````sh\necho hello\n````\n", "````sh\necho goodbye\n````\n")
+        self.assertEqual(sorted(diff), ["code"])
+        self.assertEqual(sp.compare("````\n```\nnested\n```\n````\n",
+                                    "````\n```\nnested\n```\n````\n"), {})
+
+    def test_urls_keep_balanced_parentheses(self):
+        diff = sp.compare("Use https://example.org/a(x).", "Use https://example.org/a(y).")
+        self.assertEqual(diff["code"], [("https://example.org/a(x)", 1, 0),
+                                        ("https://example.org/a(y)", 0, 1)])
+        self.assertEqual(sp.compare("See [docs](https://example.org/d).",
+                                    "See [the docs](https://example.org/d)."), {})
+
+    def test_word_numbers_bind_units(self):
+        self.assertEqual(sp.compare("Wait three seconds.", "Wait 3 seconds."), {})
+        self.assertEqual(sp.compare("Wait about three seconds.", "Wait three seconds.")["hedges"],
+                         [("about (number)", 1, 0)])
+
+    def test_line_wrap_does_not_change_phrases(self):
+        self.assertEqual(sp.compare("Wait at\nmost 3 seconds.", "Wait at most 3 seconds."), {})
+        self.assertEqual(sp.compare("Do not\nretry.", "Do not retry."), {})
+
     def test_unreadable_files_exit_2(self):
         result = subprocess.run([sys.executable, str(SCRIPT), "--json", "nope1", "nope2"],
                                 text=True, capture_output=True, check=False)

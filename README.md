@@ -72,7 +72,7 @@ python3 scripts/ste-preserve.py source.md rewrite.md
 python3 scripts/ste-preserve.py --json source.md rewrite.md
 ```
 
-Pass the rewritten text alone, without a `Needs clarification:` note. The check exits 0 when no marker differs, 1 when some differ, and 2 on a usage error. It reads both files and never edits them. It needs only the Python standard library.
+Pass the rewritten text alone, without a `Needs clarification:` or `Strict not applied:` note. The check exits 0 when no marker differs, 1 when some differ, and 2 on a usage error or an unreadable file. It reads both files and never edits them. It needs only the Python standard library.
 
 Inflections share one item, so `requires` and `required` match, `three` matches `3`, and `30 seconds` matches `30 s`. Code spans, fenced blocks, URLs, and identifiers such as `--no-cache`, `CUDA_VISIBLE_DEVICES`, or `H100` are compared verbatim apart from trailing whitespace and sentence punctuation, and they are excluded from the word checks. Backticks count as formatting, so a flag with or without backticks is the same item.
 
