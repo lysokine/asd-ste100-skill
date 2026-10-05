@@ -27,7 +27,9 @@ RULES = [
      re.compile(r";"),
      "Consider separate sentences if that makes the relationship clearer. Preserve the logical connection."),
     ("phrasal-verb",
-     re.compile(r"\b(spin(?:ning|s)? up|spun up|reach(?:ing|es|ed)? out|div(?:e|es|ing|ed) into|dove into|kick(?:ing|s|ed)? off|circl(?:e|es|ing|ed) back|touch(?:ing|es|ed)? base)\b", re.I),
+     # Software verbs such as spin up, tear down, drain, flush and mock are
+     # established technical terms; only conversational idioms are listed.
+     re.compile(r"\b(reach(?:ing|es|ed)? out|div(?:e|es|ing|ed) into|dove into|kick(?:ing|s|ed)? off|circl(?:e|es|ing|ed) back|touch(?:ing|es|ed)? base)\b", re.I),
      "Consider a plainer verb if it preserves the technical meaning. Keep established domain terms."),
     ("marketing-adjective",
      re.compile(r"\b(seamless(?:ly)?|robust(?:ly)?|cutting-edge|effortless(?:ly)?|blazing[- ]fast|world-class|state-of-the-art|game-chang(?:ing|er))\b", re.I),
@@ -313,7 +315,7 @@ def report(findings, words_total, as_json, hard_count, baseline):
 
 
 def selftest():
-    bad = ("The panel is removed; spin up the job. "
+    bad = ("The panel is removed; reach out to the team. "
            "Perform an analysis of the seamless log. "
            "We have received the report.")
     findings, _ = lint(bad)
@@ -321,6 +323,9 @@ def selftest():
     for expected in ("semicolon", "phrasal-verb", "nominalization",
                      "marketing-adjective", "passive-voice", "present-perfect"):
         assert expected in rules, expected
+    # software jargon is not a phrasal-verb hint
+    findings, _ = lint("Spin up the pod, tear down the cluster, and drain the queue.")
+    assert not any(f["rule"] == "phrasal-verb" for f in findings), findings
     # hedges must never be flagged, including modal + perfect infinitive
     findings, _ = lint("The request may have failed. It could be a timeout. "
                        "The disk might have filled.")

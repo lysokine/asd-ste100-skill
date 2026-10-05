@@ -1,8 +1,18 @@
 # ASD-STE100-inspired clarity skill
 
-A meaning-preserving editor for a selected passage of technical English. This is a fork of [danyuchn/asd-ste100-skill](https://github.com/danyuchn/asd-ste100-skill), not an official ASD tool or a demonstrated agent-reliability improvement.
+A meaning-preserving editor for a selected passage of technical English. This repository is a fork of [mikeqwe/asd-ste100-skill](https://github.com/mikeqwe/asd-ste100-skill), which is itself a fork of [danyuchn/asd-ste100-skill](https://github.com/danyuchn/asd-ste100-skill). It is not an official ASD tool or a demonstrated agent-reliability improvement.
 
 The goal is easier reading without changing facts, uncertainty, requirements, or behavior. Use it for an explicit editing task, not as a global style mandate. The core instruction is in [SKILL.md](SKILL.md).
+
+## What changes in 0.6.0
+
+Version 0.6.0 adds `scripts/ste-preserve.py`, a read-only check that compares a source with its rewrite. It lists modality, hedges, frequency words, negation, quantifiers, condition and contrast markers, numbers with units, code, and identifiers whose counts differ. It targets the most harmful rewrite failure, where a hedge or a `should` silently becomes a certainty or a `must`.
+
+The linter no longer lists `spin up` as a phrasal verb, because it is an established software term. Conversational idioms such as `reach out` and `circle back` are still listed.
+
+Strict mode keeps technical compounds and jargon, and it falls back to STE-flavored edits for debugging hypotheses, design trade-offs, and decision records, with a `Strict not applied:` note. Contrasts and concessions join the list of meaning that a rewrite must preserve.
+
+The skill sets `disable-model-invocation: true`, so it runs only when you invoke `/asd-ste100`.
 
 ## What changes in 0.5.0
 
@@ -21,11 +31,11 @@ From a test project's root, choose one destination:
 ```bash
 # Claude Code
 mkdir -p .claude/skills
-git clone https://github.com/mikeqwe/asd-ste100-skill.git .claude/skills/asd-ste100
+git clone https://github.com/lysokine/asd-ste100-skill.git .claude/skills/asd-ste100
 
 # Or Codex
 mkdir -p .agents/skills
-git clone https://github.com/mikeqwe/asd-ste100-skill.git .agents/skills/asd-ste100
+git clone https://github.com/lysokine/asd-ste100-skill.git .agents/skills/asd-ste100
 ```
 
 For an unmerged PR, check out its head branch in that clone before trying it. Cloning the default branch does not include pending changes. Do not overwrite an existing installation. Check that the session loads this fork's `SKILL.md`, not another installed skill with the same name.
@@ -55,10 +65,24 @@ This is a heuristic scanner, not a CommonMark or English parser. Length hints co
 
 The incomplete-list check supports `-`, `*`, `+`, and numeric `.`/`)` markers with zero to three leading spaces and ASCII spaces after the marker. It examines indented continuations. Fenced code is skipped using the inherited three-backtick/three-tilde toggle; inline code is excluded from style checks. These limits are not a license to auto-fix findings.
 
+## Meaning-marker check
+
+```bash
+python3 scripts/ste-preserve.py source.md rewrite.md
+python3 scripts/ste-preserve.py --json source.md rewrite.md
+```
+
+Pass the rewritten text alone, without a `Needs clarification:` note. The check exits 0 when no marker differs, 1 when some differ, and 2 on a usage error. It reads both files and never edits them. It needs only the Python standard library.
+
+Inflections share one item, so `requires` and `required` match, `three` matches `3`, and `30 seconds` matches `30 s`. Code spans, fenced blocks, and URLs are compared exactly and are excluded from the word checks.
+
+Each listed difference is a question for the reviewer, since changing `once` to `if` can be correct. A clean result does not prove that the meaning is preserved, because the check counts markers and cannot read scope or intent.
+
 ## Verification and usefulness
 
 ```bash
 python3 scripts/ste-lint.py --selftest
+python3 scripts/ste-preserve.py --selftest
 python3 -m unittest discover -s tests -v
 ```
 

@@ -39,8 +39,15 @@ class LinterTests(unittest.TestCase):
                 findings, _ = ste.lint(text)
                 self.assertFalse(any(f["rule"] == "synonym-rotation" for f in findings))
 
+    def test_software_jargon_is_not_a_phrasal_verb_hint(self):
+        for text in ("Spin up the pod.", "The job spun up two workers.",
+                     "Tear down the cluster.", "Drain the queue and flush the cache."):
+            with self.subTest(text=text):
+                findings, _ = ste.lint(text)
+                self.assertFalse(any(f["rule"] == "phrasal-verb" for f in findings))
+
     def test_style_findings_are_advisory(self):
-        result = run_cli("Perform an analysis of the seamless log; spin up the job. "
+        result = run_cli("Perform an analysis of the seamless log; reach out to the team. "
                          "The panel is removed. We have received the report. "
                          + "word " * 30 + ".")
         self.assertEqual(result.returncode, 0, result.stderr)

@@ -17,6 +17,8 @@ These are an abbreviated editorial reference, not a substitute for the standard 
 | Grammar | Simple verb forms; no semicolons; avoid phrasal verbs |
 | Layout | Lists where they clarify sequences or conditions |
 
+This fork narrows two targets. Strict mode keeps established technical compounds and software jargon when a plainer form would lose technical meaning. It does not apply sentence or structure limits to debugging hypotheses, design trade-offs, or decision records. See the Modes section of `SKILL.md`.
+
 The [upstream reference](https://github.com/danyuchn/asd-ste100-skill/blob/7d4a135a199a5d7447c4886bcd7ffe742a627bc9/references/writing-rules.md) contains the longer paraphrased summary. Consult the official standard when exact rules matter.
 
 ## Adaptation, not a transfer of guarantees
