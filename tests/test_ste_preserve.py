@@ -225,6 +225,18 @@ class PreserveTests(unittest.TestCase):
         self.assertEqual(sp.compare("Wait at\nmost 3 seconds.", "Wait at most 3 seconds."), {})
         self.assertEqual(sp.compare("Do not\nretry.", "Do not retry."), {})
 
+    def test_comparison_operators(self):
+        self.assertEqual(sp.compare("Keep wells with SNR ≥5.", "Keep wells with SNR >5.")["comparison"],
+                         [(">", 0, 1), ("≥", 1, 0)])
+        self.assertEqual(sp.compare("Keep SNR >= 5 and n <= 3.", "Keep SNR ≥ 5 and n ≤ 3."), {})
+        self.assertEqual(sp.compare("Use 5 or more nodes.", "Use 5 nodes.")["comparison"],
+                         [("or more", 1, 0)])
+        self.assertEqual(sp.compare("Wait ~30 s.", "Wait 30 s.")["comparison"], [("≈", 1, 0)])
+        self.assertEqual(sp.compare("Set n=3.", "Set n to 3.")["comparison"], [("=", 1, 0)])
+
+    def test_arrows_and_blockquotes_are_not_comparisons(self):
+        self.assertEqual(sp.compare("> Note: A -> B => C == D <- E.", "Note: A, B, C, D, E."), {})
+
     def test_unreadable_files_exit_2(self):
         result = subprocess.run([sys.executable, str(SCRIPT), "--json", "nope1", "nope2"],
                                 text=True, capture_output=True, check=False)

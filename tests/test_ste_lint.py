@@ -110,6 +110,16 @@ class LinterTests(unittest.TestCase):
         findings, _ = ste.lint("Use `spin up; seamless` as the exact label.")
         self.assertEqual(findings, [])
 
+    def test_fences_close_only_on_matching_runs(self):
+        text = "````md\n```\n- Example item and\n" + "word " * 30 + ";\n```\n````\n- Real item and"
+        findings, _ = ste.lint(text)
+        self.assertEqual([(f["rule"], f["line"]) for f in findings],
+                         [("dangling-conjunction", 7)])
+        findings, _ = ste.lint("~~~\n```\nstill code; and\n~~~~\nPlain; text.")
+        self.assertEqual([(f["rule"], f["line"]) for f in findings], [("semicolon", 5)])
+        findings, _ = ste.lint("```\nunclosed; and\n- item and")
+        self.assertEqual(findings, [])
+
     def test_modality_is_not_an_error(self):
         findings, _ = ste.lint("The request may have failed. The disk might have filled. "
                                "You should wait. You must not retry. It could be a timeout.")

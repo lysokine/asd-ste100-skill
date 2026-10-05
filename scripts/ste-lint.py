@@ -48,13 +48,36 @@ RULES = [
 
 MAX_WORDS = 25  # Review threshold, not a correctness or compliance limit.
 
-CODE_FENCE = re.compile(r"^(```|~~~)")
+FENCE_OPEN = re.compile(r"^(`{3,}|~{3,})")
 INLINE_CODE = re.compile(r"`[^`]*`")
 LIST_ITEM_START = re.compile(
     r"^(?P<indent> {0,3})(?P<marker>[-*+]|[0-9]+[.)])(?P<gap> +)(?P<body>.*)$"
 )
 CONJUNCTION_END = re.compile(r"\b(?:and|or)\s*$", re.I)
 TABLE_SEPARATOR_CELL = re.compile(r"^:?-{3,}:?$")
+
+
+def _fence_mask(lines):
+    """Return one flag per line: True for fence delimiters and fenced content.
+
+    A fence closes only on a line made of the opening character, at least as
+    long as the opening run, so a ``` line inside a ```` block stays content.
+    An unclosed fence runs to the end of the text.
+    """
+    mask = []
+    fence = None
+    for line in lines:
+        stripped = line.strip()
+        if fence is None:
+            opening = FENCE_OPEN.match(stripped)
+            if opening:
+                fence = opening.group(1)
+            mask.append(bool(opening))
+            continue
+        mask.append(True)
+        if set(stripped) == {fence[0]} and len(stripped) >= len(fence):
+            fence = None
+    return mask
 
 
 def _leading_spaces(line):
@@ -132,16 +155,11 @@ def _markdown_table_cells(lines):
 def _dangling_conjunction_findings(text, filename):
     lines = text.splitlines()
     findings = []
-    in_fence = False
+    fenced = _fence_mask(lines)
     index = 0
     while index < len(lines):
         line = lines[index]
-        stripped = line.strip()
-        if CODE_FENCE.match(stripped):
-            in_fence = not in_fence
-            index += 1
-            continue
-        if in_fence:
+        if fenced[index]:
             index += 1
             continue
         start = LIST_ITEM_START.match(line)
@@ -154,16 +172,10 @@ def _dangling_conjunction_findings(text, filename):
                           + len(start.group("gap")))
         item_lines = [(index, start.group("body"))]
         next_index = index + 1
-        item_fence = False
         while next_index < len(lines):
             candidate = lines[next_index]
-            candidate_stripped = candidate.strip()
-            if CODE_FENCE.match(candidate_stripped):
-                # Fence delimiters are state markers, not meaningful item lines.
-                item_fence = not item_fence
-                next_index += 1
-                continue
-            if item_fence:
+            if fenced[next_index]:
+                # Fenced lines belong to the item but are not meaningful item lines.
                 next_index += 1
                 continue
             if not _is_list_continuation(candidate, content_indent):
@@ -218,7 +230,7 @@ def _long_sentence_findings(lines, table_cells, filename):
     """
     findings = []
     pending = []
-    in_fence = False
+    fenced = _fence_mask(lines)
     list_indent = None
 
     def flush():
@@ -240,12 +252,9 @@ def _long_sentence_findings(lines, table_cells, filename):
 
     for index, raw in enumerate(lines):
         stripped = raw.strip()
-        if CODE_FENCE.match(stripped):
+        if fenced[index]:
             flush()
             list_indent = None
-            in_fence = not in_fence
-            continue
-        if in_fence:
             continue
         if index in table_cells:
             flush()
@@ -275,14 +284,11 @@ def _long_sentence_findings(lines, table_cells, filename):
 def lint(text, filename="<stdin>"):
     findings = []
     words_total = 0
-    in_fence = False
     lines = text.splitlines()
+    fenced = _fence_mask(lines)
     table_cells = _markdown_table_cells(lines)
     for lineno, raw_line in enumerate(lines, 1):
-        if CODE_FENCE.match(raw_line.strip()):
-            in_fence = not in_fence
-            continue
-        if in_fence:
+        if fenced[lineno - 1]:
             continue
         segments = table_cells.get(lineno - 1, [(raw_line, 0)])
         for segment, source_column in segments:
@@ -363,6 +369,11 @@ def selftest():
     assert len(dangling) == 1 and dangling[0]["line"] == 1, dangling
     findings, _ = lint("```text\n- code and\n```")
     assert not any(f["rule"] == "dangling-conjunction" for f in findings)
+    # a longer fence holds a shorter one; only a long-enough run of the same char closes it
+    findings, _ = lint("````md\n```\n- code and\n```\nx; y\n````\n- Real item and")
+    assert [f["line"] for f in findings] == [7], findings
+    findings, _ = lint("```\nx; y\n~~~\nstill code; and\n````\n- Real item and")
+    assert [f["line"] for f in findings] == [6], findings
 
     # one- and three-space markers and ordered continuation width
     findings, _ = lint(" - Start the task and\n   record the result.")

@@ -80,6 +80,11 @@ WORD_CATEGORIES = [
     ] + [(word, _w(word)) for word in (
         "all", "every", "each", "any", "some", "only", "both", "either",
         "several", "many", "few")]),
+    # Symbols (>=, <, ~5, ...) are added to this category separately; see COMPARISON_SYMBOLS.
+    ("comparison", [
+        ("or more", _w(r"or\s+more")), ("or fewer", _w(r"or\s+fewer")),
+        ("or less", _w(r"or\s+less")), ("greater than", _w(r"greater\s+than")),
+    ]),
     ("conditions", [
         (word, _w(word)) for word in (
             "if", "unless", "when", "whenever", "until", "before", "after",
@@ -94,6 +99,18 @@ WORD_CATEGORIES = [
         "but", "however", "although", "though", "whereas", "yet", "despite",
         "instead", "conversely", "nevertheless", "nonetheless")]),
 ]
+
+# Arrows (->, =>, <-) and doubled operators (==, <<) are not comparisons.
+COMPARISON_SYMBOLS = [
+    ("≥", re.compile(r"≥|⩾|>=")),
+    ("≤", re.compile(r"≤|⩽|<=")),
+    ("≠", re.compile(r"≠|!=")),
+    ("≈", re.compile(r"≈|(?<![\w~])~(?=\s*[-+]?\.?\d)")),
+    (">", re.compile(r"(?<![-=>])>(?![=>])")),
+    ("<", re.compile(r"(?<!<)<(?![=<-])")),
+    ("=", re.compile(r"(?<![=!<>])=(?![=>])")),
+]
+BLOCKQUOTE_RE = re.compile(r"^[ \t]*(?:>[ \t]?)+", re.M)
 
 CONTRACTIONS = [
     (re.compile(r"\bcannot\b"), "can not"),
@@ -206,6 +223,11 @@ def extract(text):
     prose = WORD_NUMBER_RE.sub(lambda match: WORD_NUMBERS[match.group(0).lower()], prose)
     for match in NUMBER_RE.finditer(prose):
         found["numbers"][_number_item(match.group(1), match.group(2))] += 1
+    unquoted = BLOCKQUOTE_RE.sub("", prose)
+    for item, pattern in COMPARISON_SYMBOLS:
+        count = len(pattern.findall(unquoted))
+        if count:
+            found["comparison"][item] += count
 
     lowered = re.sub(r"\s+", " ", prose.lower())
     for pattern, replacement in CONTRACTIONS:
@@ -243,10 +265,11 @@ def report(differences, as_json):
         }, indent=2))
         return
     if not differences:
-        print("No marker differences found.")
+        print("No marker differences found. That does not prove the meaning is preserved.")
+        return
     for name, rows in differences.items():
         print(f"{name}: " + "; ".join(f"{item} {src} -> {rw}" for item, src, rw in rows))
-    print("Review each listed difference. A clean result does not prove the meaning is preserved.")
+    print("Review each listed difference; some are legitimate rewording.")
 
 
 def selftest():
@@ -264,6 +287,9 @@ def selftest():
     assert compare("Run `must_run`.", "Run `must_run`.") == {}
     assert compare("A is fast but uses memory.", "A is fast. It uses memory.")["contrast"] == [
         ("but", 1, 0)]
+    assert compare("Keep SNR >= 5.", "Keep SNR ≥ 5.") == {}
+    assert compare("Keep SNR ≥5.", "Keep SNR >5.")["comparison"] == [(">", 0, 1), ("≥", 1, 0)]
+    assert compare("A -> B => C == D <- E", "A, B, C, D, E") == {}
     print("selftest OK")
 
 
