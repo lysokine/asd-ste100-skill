@@ -1,0 +1,35 @@
+{
+  "P1": [
+    {"q": "Can this queue be used for a multi-node training job?", "expected": "No. Never for multi-GPU or multi-node (no NVLink/InfiniBand)."},
+    {"q": "After warm-up, how much slower than A100 is it, and how strong is the evidence?", "expected": "About 5% (approximate), from one measurement on a small fp32 CNN."},
+    {"q": "What one-time cost should you expect?", "expected": "About 85 s (approximate) of JIT compilation."},
+    {"q": "According to the text, why is the queue mostly idle?", "expected": "Stated as fact: the card is sm_120 and the envs' PyTorch ships kernels only to sm_90, so it runs via PTX JIT with nothing precompiled."},
+    {"q": "Is it suitable for single-GPU work?", "expected": "Yes."}
+  ],
+  "P2": [
+    {"q": "Who receives a Slack message by default?", "expected": "The user themself, as a DM."},
+    {"q": "When may a message go to another person or channel?", "expected": "Only when the user explicitly says \"send to <person>\" or \"post in <channel>\"."},
+    {"q": "In that case, may the agent send it immediately?", "expected": "No. It must confirm with the user before sending."},
+    {"q": "Does the rule cover drafts as well as sent messages?", "expected": "Yes. Drafts also go to the user as a DM."}
+  ],
+  "P3": [
+    {"q": "What must you check before installing packages into an env?", "expected": "bjobs: whether a cluster job using that env is still running."},
+    {"q": "If a job is using the env, what are the options?", "expected": "Wait for the job, or clone the env and install into the clone."},
+    {"q": "Will code imported later in the live job definitely load the new package version?", "expected": "Not definitely. It may load the new version."},
+    {"q": "What must you do after any env change?", "expected": "Immediately pip freeze to the pinned requirements file and note the date."}
+  ],
+  "P4": [
+    {"q": "When does the default Drive folder apply?", "expected": "When an upload to Google Drive is requested for a pptx, docx, pdf, or html deliverable and no folder is given."},
+    {"q": "What must you do before uploading?", "expected": "List the folder and check for a file with the same name."},
+    {"q": "May you overwrite an existing file with the same name?", "expected": "Not someone else's file. The text does not say what to do about your own file."},
+    {"q": "How should the files be copied?", "expected": "Stage them in one local folder and rclone copy that folder once."},
+    {"q": "How do you verify the upload, and what do you report?", "expected": "rclone check --checksum --one-way; report the matching-file count; never --size-only."}
+  ],
+  "P5": [
+    {"q": "For which data must you ask before using Codex?", "expected": "Patient data, embargoed collaborator data, or anything the user marked sensitive."},
+    {"q": "Is it fine to send the user's own analyses?", "expected": "Yes."},
+    {"q": "What must you do before applying a Codex finding?", "expected": "Open the cited file/line and confirm the finding."},
+    {"q": "Does Codex's suggested wording always over-correct?", "expected": "No. Sometimes, in one past review."},
+    {"q": "How should an accepted fix be applied?", "expected": "Keep the author's voice and make the minimum effective edit."}
+  ]
+}
