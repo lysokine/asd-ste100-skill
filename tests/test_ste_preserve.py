@@ -91,7 +91,7 @@ class PreserveTests(unittest.TestCase):
 
     def test_code_is_compared_exactly_and_not_as_prose(self):
         diff = sp.compare("Set `max_retries` to 3.", "Set `max-retries` to 3.")
-        self.assertEqual(diff["code"], [("`max-retries`", 0, 1), ("`max_retries`", 1, 0)])
+        self.assertEqual(diff["code"], [("max-retries", 0, 1), ("max_retries", 1, 0)])
         self.assertEqual(sp.compare("Run `must_not_fail` now.", "Run `must_not_fail` now."), {})
         self.assertEqual(sp.compare("Use `if x` here.", "Use `if x` here."), {})
         diff = sp.compare("```\nmake all\n```\n", "```\nmake test\n```\n")
@@ -103,8 +103,8 @@ class PreserveTests(unittest.TestCase):
         self.assertEqual(sp.compare(source, source), {})
         diff = sp.compare(source, source.replace("-P das", "-p das")
                           .replace("CUDA_VISIBLE_DEVICES", "the GPU variable"))
-        self.assertEqual(diff["identifiers"], [("-P", 1, 0), ("-p", 0, 1),
-                                               ("CUDA_VISIBLE_DEVICES", 1, 0)])
+        self.assertEqual(diff["code"], [("-P", 1, 0), ("-p", 0, 1),
+                                        ("CUDA_VISIBLE_DEVICES", 1, 0)])
 
     def test_sentence_final_punctuation_does_not_change_identifiers(self):
         self.assertEqual(sp.compare("Edit config.toml.", "Edit config.toml and restart."), {})
@@ -139,6 +139,70 @@ class PreserveTests(unittest.TestCase):
         diff = sp.compare(source, hardened)
         self.assertEqual(diff["modality"], [("must", 1, 0), ("should", 1, 0)])
         self.assertEqual(diff["hedges"], [("probable", 1, 0)])
+
+    def test_hedge_to_certainty_is_reported(self):
+        cases = [
+            ("It is unclear whether the cache caused the 502s.", "The cache caused the 502s.",
+             "hedges", [("unclear", 1, 0), ("whether", 1, 0)]),
+            ("This would reduce latency.", "This reduces latency.",
+             "modality", [("would", 1, 0)]),
+            ("The job will fail.", "The job fails.", "modality", [("will", 1, 0)]),
+            ("We think it is a race condition.", "It is a race condition.",
+             "hedges", [("think", 1, 0)]),
+            ("There is a possibility of data loss.", "There is data loss.",
+             "hedges", [("possible", 1, 0)]),
+            ("Wait about 30 s on around 5 nodes.", "Wait 30 s on 5 nodes.",
+             "hedges", [("about (number)", 2, 0)]),
+            ("Retries tend to succeed.", "Retries succeed.", "hedges", [("tend to", 1, 0)]),
+        ]
+        for source, rewrite, category, expected in cases:
+            with self.subTest(rewrite=rewrite):
+                self.assertEqual(sp.compare(source, rewrite)[category], expected)
+
+    def test_letter_digit_tokens_are_compared(self):
+        diff = sp.compare("Use API v2 on an H100 with Python3.",
+                          "Use API v3 on an A100 with Python2.")
+        self.assertEqual(diff["code"], [("A100", 0, 1), ("H100", 1, 0), ("Python2", 0, 1),
+                                        ("Python3", 1, 0), ("v2", 1, 0), ("v3", 0, 1)])
+
+    def test_backticks_alone_are_not_a_difference(self):
+        self.assertEqual(sp.compare("Run with --no-cache and set timeout to 30.",
+                                    "Run with `--no-cache` and set timeout to `30`."), {})
+
+    def test_flag_words_do_not_count_as_prose(self):
+        self.assertEqual(sp.compare("Pass --no-cache.", "Pass --no-cache, then wait.")
+                         .get("negation"), None)
+
+    def test_routine_rewording_noise_is_suppressed(self):
+        for source, rewrite in (("Pick one of the nodes.", "Pick a node."),
+                                ("Use 50% of RAM.", "Use 50 percent of RAM."),
+                                ("Wait 5 weeks.", "Wait 5 wk."),
+                                ("It needs read/write access.", "It needs read and write access.")):
+            with self.subTest(rewrite=rewrite):
+                self.assertEqual(sp.compare(source, rewrite), {})
+
+    def test_bits_and_bytes_differ(self):
+        self.assertEqual(sp.compare("Use 10 Mb links.", "Use 10 MB links.")["numbers"],
+                         [("10 MB", 0, 1), ("10 Mb", 1, 0)])
+        self.assertEqual(sp.compare("Use 4 GiB.", "Use 4 GIB."), {})
+
+    def test_sign_is_kept(self):
+        self.assertEqual(sp.compare("Set the offset to -5.", "Set the offset to 5.")["numbers"],
+                         [("-5", 1, 0), ("5", 0, 1)])
+        self.assertEqual(sp.compare("Use 5-10 workers.", "Use 5-10 workers."), {})
+
+    def test_unreadable_files_exit_2(self):
+        result = subprocess.run([sys.executable, str(SCRIPT), "--json", "nope1", "nope2"],
+                                text=True, capture_output=True, check=False)
+        self.assertEqual(result.returncode, 2)
+        self.assertEqual(result.stdout, "")
+        self.assertIn("ste-preserve:", result.stderr)
+        with tempfile.TemporaryDirectory() as directory:
+            bad = Path(directory) / "bad.md"
+            bad.write_bytes(b"\xff\xfe not utf-8")
+            result = subprocess.run([sys.executable, str(SCRIPT), str(bad), str(bad)],
+                                    text=True, capture_output=True, check=False)
+        self.assertEqual(result.returncode, 2)
 
     def test_cli_exit_codes_json_and_read_only(self):
         result, unchanged = run_cli("You should wait.", "You should wait.")

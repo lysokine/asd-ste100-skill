@@ -2,19 +2,21 @@
 """List meaning markers that differ between a source text and its rewrite.
 
 Compares modality, hedges, frequency words, negation, quantifiers, condition
-and contrast markers, numbers with units, code, and identifiers. A listed
-difference needs a human decision, because some differences are legitimate
-rewording. A clean result does not prove that the meaning is preserved.
+and contrast markers, signed numbers with units, and code (code spans, fenced
+blocks, URLs, and identifiers such as flags, paths, snake_case, and H100). A
+listed difference needs a human decision, because some differences are
+legitimate rewording. A clean result does not prove that the meaning is
+preserved.
 
 Read-only. Standard library only. Pass the rewritten text alone, without any
-"Needs clarification:" note.
+"Needs clarification:" or "Strict not applied:" note.
 
 Usage:
     ste-preserve.py SOURCE_FILE REWRITE_FILE [--json]
     ste-preserve.py --selftest
 
 Exit 0 when no difference is found, 1 when differences are found, 2 on a
-usage error.
+usage error or an unreadable file.
 """
 import json
 import re
@@ -32,6 +34,7 @@ WORD_CATEGORIES = [
     ("modality", [
         ("may", _w("may")), ("might", _w("might")), ("could", _w("could")),
         ("can", _w("can")), ("should", _w("should")), ("must", _w("must")),
+        ("will", _w("will")), ("would", _w("would")),
         ("shall", _w("shall")), ("ought to", _w(r"ought\s+to")),
         ("need to", _w(r"need(?:s|ed)?\s+to")),
         ("have to", _w(r"(?:has|have|had)\s+to")),
@@ -40,13 +43,23 @@ WORD_CATEGORIES = [
         ("recommend", _w(r"recommend(?:s|ed|ation)?")),
     ]),
     ("hedges", [
-        ("possible", _w(r"possibl[ey]")), ("probable", _w(r"probabl[ey]")),
+        ("possible", _w(r"possibl[ey]|possibilit(?:y|ies)")),
+        ("probable", _w(r"probabl[ey]|probabilit(?:y|ies)")),
         ("likely", _w("likely")), ("unlikely", _w("unlikely")),
         ("perhaps", _w("perhaps")), ("maybe", _w("maybe")),
         ("appear", _w(r"appear(?:s|ed|ing)?")), ("seem", _w(r"seem(?:s|ed|ing)?")),
         ("apparently", _w("apparently")), ("potential", _w(r"potential(?:ly)?")),
         ("presumably", _w("presumably")), ("suspect", _w(r"suspect(?:s|ed)?")),
         ("approximately", _w("approximately")), ("roughly", _w("roughly")),
+        ("about (number)", re.compile(r"\b(?:about|around)(?=\s+[-+]?\d)")),
+        ("unclear", _w("unclear")), ("uncertain", _w(r"uncertain(?:ty|ties)?")),
+        ("unknown", _w("unknown")), ("unsure", _w("unsure")),
+        ("whether", _w("whether")), ("think", _w(r"thinks?")),
+        ("believe", _w(r"believ(?:e|es|ed)")),
+        ("assume", _w(r"assum(?:e|es|ed|ption|ptions)")),
+        ("expect", _w(r"expect(?:s|ed)?")),
+        ("hypothesis", _w(r"hypothes(?:is|es|ize|izes|ized)")),
+        ("tend to", _w(r"tend(?:s|ed)?\s+to")),
     ]),
     ("frequency", [
         (word, _w(word)) for word in (
@@ -90,24 +103,25 @@ CONTRACTIONS = [
     (re.compile(r"n't\b"), " not"),
 ]
 
+# "one" is left out: as a pronoun or determiner it is too common to track.
 WORD_NUMBERS = {
-    "zero": "0", "one": "1", "two": "2", "three": "3", "four": "4",
-    "five": "5", "six": "6", "seven": "7", "eight": "8", "nine": "9",
-    "ten": "10", "eleven": "11", "twelve": "12", "twice": "2",
+    "zero": "0", "two": "2", "three": "3", "four": "4", "five": "5",
+    "six": "6", "seven": "7", "eight": "8", "nine": "9", "ten": "10",
+    "eleven": "11", "twelve": "12", "twice": "2",
 }
 WORD_NUMBER_RE = _w("|".join(WORD_NUMBERS))
 
 UNITS = {
-    "%": "%", "ms": "ms", "s": "s", "sec": "s", "secs": "s", "second": "s",
-    "seconds": "s", "min": "min", "mins": "min", "minute": "min",
+    "%": "%", "percent": "%", "ms": "ms", "s": "s", "sec": "s", "secs": "s",
+    "second": "s", "seconds": "s", "min": "min", "mins": "min", "minute": "min",
     "minutes": "min", "h": "h", "hr": "h", "hrs": "h", "hour": "h",
     "hours": "h", "day": "d", "days": "d", "week": "wk", "weeks": "wk",
-    "byte": "B", "bytes": "B",
+    "wk": "wk", "wks": "wk", "byte": "B", "bytes": "B",
 }
 NUMBER_RE = re.compile(
-    r"(?<![\w.])(\d+(?:[.,:]\d+)*)"
-    r"(?:\s*(%|(?:ms|secs?|seconds?|s|mins?|minutes?|hrs?|hours?|h|days?|weeks?"
-    r"|bytes?|[kmgtp]i?b)\b))?",
+    r"(?<![\w.])([-+]?\d+(?:[.,:]\d+)*)"
+    r"(?:\s*(%|(?:ms|secs?|seconds?|s|mins?|minutes?|hrs?|hours?|h|days?|weeks?|wks?"
+    r"|percent|bytes?|[kmgtp]i?b)\b))?",
     re.I,
 )
 
@@ -122,45 +136,70 @@ IDENTIFIER_RE = re.compile(r"""(?<![\w/.$~-])(
     | [a-z]+[A-Z]\w*                       # camelCase
     | [A-Za-z_]\w*(?:\.[A-Za-z_]\w*)+      # dotted names and file names
     | \$\{?[A-Za-z_]\w*\}?                 # shell variables
+    | [A-Za-z]+\d[\w.-]*                   # letter+digit tokens: H100, v2, Python3
 )""", re.X)
 IDENTIFIER_STOPLIST = {"e.g", "i.e", "and/or", "vs"}
 TRAILING_PUNCT = ".,;:!?"
 
 
 def _number_item(digits, unit):
-    if re.fullmatch(r"\d{1,3}(?:,\d{3})+", digits):
+    if re.fullmatch(r"[-+]?\d{1,3}(?:,\d{3})+", digits):
         digits = digits.replace(",", "")
     if not unit:
         return digits
-    unit = unit.lower()
-    if unit not in UNITS and re.fullmatch(r"[kmgtp]i?b", unit):
-        return f"{digits} {unit.upper()}"
-    return f"{digits} {UNITS.get(unit, unit)}"
+    if re.fullmatch(r"[kmgtp]i?b", unit, re.I):
+        # Keep the case of the final b: Mb (bits) and MB (bytes) differ.
+        return f"{digits} {unit[0].upper()}{unit[1:-1].lower()}{unit[-1]}"
+    return f"{digits} {UNITS.get(unit.lower(), unit.lower())}"
+
+
+def _is_identifier(item):
+    if item.lower() in IDENTIFIER_STOPLIST or len(item) < 2:
+        return False
+    # A single slash between plain words (read/write, A/B) is prose, not a path.
+    if (item.count("/") == 1 and not item.startswith(("/", "~", "."))
+            and not re.search(r"[.$~{}]", item)):
+        return False
+    return True
 
 
 def extract(text):
     """Return {category: Counter} of the meaning markers in one text."""
-    text = text.replace("\r\n", "\n").replace("’", "'").replace("‘", "'")
+    text = (text.replace("\r\n", "\n").replace("’", "'").replace("‘", "'")
+            .replace("−", "-"))
     found = {name: Counter() for name, _ in WORD_CATEGORIES}
-    found.update(numbers=Counter(), code=Counter(), identifiers=Counter())
+    found.update(numbers=Counter(), code=Counter())
 
     def take_fence(match):
         body = "\n".join(line.rstrip() for line in match.group(2).strip("\n").split("\n"))
         found["code"][f"[block] {body}"] += 1
         return "\n"
 
-    prose = FENCE_RE.sub(take_fence, text)
-    for match in INLINE_CODE_RE.finditer(prose):
-        found["code"][f"`{match.group(1)}`"] += 1
-    prose = INLINE_CODE_RE.sub(" ", prose)
-    for match in URL_RE.finditer(prose):
-        found["code"][match.group(0).rstrip(TRAILING_PUNCT)] += 1
-    prose = URL_RE.sub(" ", prose)
+    def take_span(match):
+        # Backticks are formatting: `--no-cache` and --no-cache are one item.
+        content = match.group(1).strip()
+        number = NUMBER_RE.fullmatch(content)
+        if number:
+            found["numbers"][_number_item(number.group(1), number.group(2))] += 1
+        else:
+            found["code"][content] += 1
+        return " "
 
-    for match in IDENTIFIER_RE.finditer(prose):
+    def take_url(match):
+        found["code"][match.group(0).rstrip(TRAILING_PUNCT)] += 1
+        return " "
+
+    def take_identifier(match):
         item = match.group(1).rstrip(TRAILING_PUNCT)
-        if item.lower() not in IDENTIFIER_STOPLIST and len(item) > 1:
-            found["identifiers"][item] += 1
+        if not _is_identifier(item):
+            return match.group(0)
+        found["code"][item] += 1
+        return " " + match.group(0)[len(item):]
+
+    prose = FENCE_RE.sub(take_fence, text)
+    prose = INLINE_CODE_RE.sub(take_span, prose)
+    prose = URL_RE.sub(take_url, prose)
+    prose = IDENTIFIER_RE.sub(take_identifier, prose)
 
     for match in NUMBER_RE.finditer(prose):
         found["numbers"][_number_item(match.group(1), match.group(2))] += 1
@@ -213,13 +252,14 @@ def selftest():
     assert compare("Retry at most 3 times.", "Retry at most 3 times.") == {}
     assert compare("You should wait.", "You must wait.")["modality"] == [
         ("must", 0, 1), ("should", 1, 0)]
-    assert "hedges" not in compare("It may have failed.", "It may have failed.")
     assert compare("It may have failed.", "It failed.")["modality"] == [("may", 1, 0)]
+    assert compare("We think it is a race.", "It is a race.")["hedges"] == [("think", 1, 0)]
     assert compare("Wait 30 seconds.", "Wait 30 s.") == {}
     assert compare("Retry three times.", "Retry 3 times.") == {}
     assert compare("Don't retry.", "Do not retry.") == {}
     assert compare("Set `max_retries`.", "Set `max-retries`.")["code"] == [
-        ("`max-retries`", 0, 1), ("`max_retries`", 1, 0)]
+        ("max-retries", 0, 1), ("max_retries", 1, 0)]
+    assert compare("Use --no-cache.", "Use `--no-cache`.") == {}
     assert compare("Run `must_run`.", "Run `must_run`.") == {}
     assert compare("A is fast but uses memory.", "A is fast. It uses memory.")["contrast"] == [
         ("but", 1, 0)]
@@ -236,10 +276,14 @@ def main(argv):
     if len(paths) != 2 or unknown:
         print(__doc__.strip(), file=sys.stderr)
         return 2
-    with open(paths[0], encoding="utf-8") as handle:
-        source = handle.read()
-    with open(paths[1], encoding="utf-8") as handle:
-        rewrite = handle.read()
+    try:
+        with open(paths[0], encoding="utf-8") as handle:
+            source = handle.read()
+        with open(paths[1], encoding="utf-8") as handle:
+            rewrite = handle.read()
+    except (OSError, UnicodeDecodeError) as error:
+        print(f"ste-preserve: {error}", file=sys.stderr)
+        return 2
     differences = compare(source, rewrite)
     report(differences, as_json)
     return 1 if differences else 0

@@ -6,7 +6,7 @@ The goal is easier reading without changing facts, uncertainty, requirements, or
 
 ## What changes in 0.6.0
 
-Version 0.6.0 adds `scripts/ste-preserve.py`, a read-only check that compares a source with its rewrite. It lists modality, hedges, frequency words, negation, quantifiers, condition and contrast markers, numbers with units, code, and identifiers whose counts differ. It targets the most harmful rewrite failure, where a hedge or a `should` silently becomes a certainty or a `must`.
+Version 0.6.0 adds `scripts/ste-preserve.py`, a read-only check that compares a source with its rewrite. It lists modality, hedges, frequency words, negation, quantifiers, condition and contrast markers, numbers with units, code, and identifiers whose counts differ. It catches the most harmful rewrite failure, a hedge or a `should` that silently becomes a certainty or a `must`, when the changed word is on its lists: for example `may`, `should`, `will`, `possibly`, `unclear`, `we think`, or `about 30`. A hedge phrased some other way can still slip through.
 
 The linter no longer lists `spin up` as a phrasal verb, because it is an established software term. Conversational idioms such as `reach out` and `circle back` are still listed.
 
@@ -40,7 +40,7 @@ git clone https://github.com/lysokine/asd-ste100-skill.git .agents/skills/asd-st
 
 For an unmerged PR, check out its head branch in that clone before trying it. Cloning the default branch does not include pending changes. Do not overwrite an existing installation. Check that the session loads this fork's `SKILL.md`, not another installed skill with the same name.
 
-Use `/asd-ste100` in Claude Code or select the skill explicitly in Codex, then supply the text and ask to show the diff during the trial. Keep the source visible for comparison. The default output is just the rewritten text, with a separate note when meaning needs clarification.
+Use `/asd-ste100` in Claude Code or select the skill explicitly in Codex, then supply the text and ask to show the diff during the trial. Keep the source visible for comparison. The default output is just the rewritten text. A separate `Needs clarification:` note flags unresolved meaning, and a `Strict not applied:` note marks a passage where strict mode was declined.
 
 Local skill locations are documented by [Claude Code](https://code.claude.com/docs/en/skills) and [Codex](https://developers.openai.com/codex/skills/). Native loading and model behavior must be checked in your own session; the Python tests below do not exercise either runtime.
 
@@ -74,7 +74,7 @@ python3 scripts/ste-preserve.py --json source.md rewrite.md
 
 Pass the rewritten text alone, without a `Needs clarification:` note. The check exits 0 when no marker differs, 1 when some differ, and 2 on a usage error. It reads both files and never edits them. It needs only the Python standard library.
 
-Inflections share one item, so `requires` and `required` match, `three` matches `3`, and `30 seconds` matches `30 s`. Code spans, fenced blocks, and URLs are compared exactly and are excluded from the word checks.
+Inflections share one item, so `requires` and `required` match, `three` matches `3`, and `30 seconds` matches `30 s`. Code spans, fenced blocks, URLs, and identifiers such as `--no-cache`, `CUDA_VISIBLE_DEVICES`, or `H100` are compared verbatim apart from trailing whitespace and sentence punctuation, and they are excluded from the word checks. Backticks count as formatting, so a flag with or without backticks is the same item.
 
 Each listed difference is a question for the reviewer, since changing `once` to `if` can be correct. A clean result does not prove that the meaning is preserved, because the check counts markers and cannot read scope or intent.
 

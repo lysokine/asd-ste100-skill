@@ -41,7 +41,7 @@ After rewriting, compare each changed passage with the source. Check for lost co
 
 **Strict is opt-in.** When explicitly requested, use the STE targets summarized in `references/writing-rules.md`. The preservation rules still take precedence. Exact dictionary compliance requires the official standard and domain terminology; do not claim it from this skill alone. The linter's behavior does not change with the rewrite mode.
 
-Strict mode still keeps established technical compounds and jargon, such as `Kubernetes pod autoscaler webhook configuration` or `spin up`, when a plainer form would lose technical meaning. For a debugging hypothesis, a design trade-off, or a decision record, apply only the STE-flavored edits even when strict is requested, because strict sentence limits split apart the hedges and comparisons that carry the meaning. Add a one-line `Strict not applied:` note that names the passage.
+Strict mode still keeps established technical compounds and jargon, such as `Kubernetes pod autoscaler webhook configuration` or `spin up`, when a plainer form would lose technical meaning. For a debugging hypothesis, a design trade-off, or a decision record, apply only the STE-flavored edits even when strict is requested, because strict sentence limits split apart the hedges and comparisons that carry the meaning. Add a one-line `Strict not applied:` note that names the passage, placed outside the rewritten text like the `Needs clarification:` note.
 
 ## Output
 
